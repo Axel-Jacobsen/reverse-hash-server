@@ -1,3 +1,2 @@
 compile:
-	@gcc server.c -o server
-
+	@gcc -Wall -o server server.c

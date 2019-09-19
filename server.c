@@ -1,96 +1,141 @@
-#include <netdb.h> 
-#include <netinet/in.h> 
-#include <stdlib.h> 
+#include <errno.h>
+#include <stdlib.h>
 #include <stdio.h>
-#include <string.h> 
-#include <sys/socket.h> 
-#include <sys/types.h> 
-#define MAX 80 
-#define PORT 5003 
-#define SA struct sockaddr 
+#include <stdint.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <math.h>
 
-// Function designed for chat between client and server. 
-void func(int sockfd) 
-{ 
-    char buff[MAX]; 
-    int n; 
-    // infinite loop for chat 
-    for (;;) { 
-        bzero(buff, MAX); 
+#include "messages.h"
 
-        // read the message from client and copy it in buffer 
-        read(sockfd, buff, sizeof(buff)); 
-        // print buffer which contains the client contents 
-        printf("From client: %s\t To client : ", buff); 
-        bzero(buff, MAX); 
-        n = 0; 
-        // copy server message in the buffer 
-        while ((buff[n++] = getchar()) != '\n') 
-            ; 
+#define SERVER_IP "192.168.101.10"
+#define MESSAGE_LEN 49
 
-        // and send that buffer to client 
-        write(sockfd, buff, sizeof(buff)); 
 
-        // if msg contains "Exit" then server exit and chat ended. 
-        if (strncmp("exit", buff, 4) == 0) { 
-            printf("Server Exit...\n"); 
-            break; 
-        } 
-    } 
-} 
+/*
+ * big_endian_arr is the client message, lil_endian_arr is the client message in lil endian
+ */
+void read_client_msg(char *big_endian_arr, char *lil_endian_arr, int len)
+{
+	/*
+	hash = big_endian_arr[0:32];
+	start = big_endain_arr[32:40];
+	end = big_endian_arr[40:48];
+	priority = big_endain_arr[49];
+	*/
+	uint64_t bin = 0;
 
-// Driver function 
-int main() 
-{ 
-    int sockfd, connfd, len; 
-    struct sockaddr_in servaddr, cli; 
+	int i;
+	for (i = 32; i > 0; i--)
+	{
+		bin = bin | ((uint64_t)big_endian_arr[i] << 8 * (32 - i));
+		printf("%d", (uint8_t)big_endian_arr[i]);
+	}
 
-    // socket create and verification 
-    sockfd = socket(AF_INET, SOCK_STREAM, 0); 
-    if (sockfd == -1) { 
-        printf("socket creation failed...\n"); 
-        exit(0); 
-    } 
-    else
-        printf("Socket successfully created..\n"); 
-    bzero(&servaddr, sizeof(servaddr)); 
+	printf(" ");
 
-    // assign IP, PORT 
-    servaddr.sin_family = AF_INET; 
-    servaddr.sin_addr.s_addr = htonl(INADDR_ANY); 
-    servaddr.sin_port = htons(PORT); 
+	for (i = 40; i > 32; i--)
+		printf("%d", (uint8_t)big_endian_arr[i]);
 
-    // Binding newly created socket to given IP and verification 
-    if ((bind(sockfd, (SA*)&servaddr, sizeof(servaddr))) != 0) { 
-        printf("socket bind failed...\n"); 
-        exit(0); 
-    } 
-    else
-        printf("Socket successfully binded..\n"); 
+	printf(" ");
 
-    // Now server is ready to listen and verification 
-    if ((listen(sockfd, 5)) != 0) { 
-        printf("Listen failed...\n"); 
-        exit(0); 
-    } 
-    else
-        printf("Server listening..\n"); 
-    len = sizeof(cli); 
+	for (i = 48; i > 40; i--)
+		printf("%d", (uint8_t)big_endian_arr[i]);
 
-    // Accept the data packet from client and verification 
-    connfd = accept(sockfd, (SA*)&cli, &len); 
-    if (connfd < 0) { 
-        printf("server acccept failed...\n"); 
-        exit(0); 
-    } 
-    else
-        printf("server acccept the client...\n"); 
+	printf(" ");
+			
+	printf("%d\n", (uint8_t)big_endian_arr[48]);
 
-    // Function for chatting between client and server 
-    func(connfd); 
+	printf("BIN: %lu\n", bin);
+/*
+	int i;
+	for (i = 0; i < len; i++)
+	{
+		//big_endian_arr[i] = htole64(be64toh(lil_endian_arr[i]));
+		//printf("%d\n", i);
+		printf("%d\n", (char)htole64(be64toh(lil_endian_arr[i])));
 
-    // After chatting close the socket 
-    close(sockfd); 
-} 
+	}*/
+}
 
+int main(int argc, char *argv[])
+{
+	int PORT;
+	if (argc > 1)
+		PORT = atoi(argv[1]);
+
+	// Create a socketaddr_in to hold server socket address data, and zero it
+	struct sockaddr_in server_addr = {0};
+
+	// htons takes host byte ordering to short value in network byte ordering
+	// htonl same as htons, except takes it to network long instead of short
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port = htons(PORT);
+	server_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
+
+	// TCP Socket Creation
+	int listen_sock;
+	if ((listen_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+	{
+		perror("could not create listen socket\n");
+		return 1;
+	}
+
+	// Bind to TCP socket
+	if ((bind(listen_sock, (struct sockaddr *) &server_addr, sizeof(server_addr))) < 0)
+	{
+		perror("could not bind to socket");
+		return 1;
+	}
+
+	// Listen on TCP socket	
+	int wait_size = 16; // number of clients that we queue before connection is busy
+	if (listen(listen_sock, wait_size) < 0)
+	{
+		perror("couldn't open socket for listening");
+		return 1;
+	}
+
+	printf("serving on %s:%d\n", inet_ntoa(server_addr.sin_addr), PORT);
+
+	struct sockaddr_in client_addr;
+	uint client_address_len = 0;
+
+	while (1)
+	{
+		int sock;
+		if ((sock = accept(listen_sock, (struct sockaddr *) &client_addr, &client_address_len)) < 0)
+		{
+			perror("couldn't open a socket to accept data");
+			return 1;
+		}
+
+		int n = 0;
+		int len = 0, maxlen = 49;
+		char buffer[maxlen];
+		char *pbuffer = buffer;
+
+		char *client_ip = inet_ntoa(client_addr.sin_addr);
+		char little_endian[MESSAGE_LEN];
+
+		printf("client connected with ip address: %s\n", client_ip);
+		while ((n = recv(sock, pbuffer, maxlen, 0)) > 0)
+		{
+			pbuffer += n;
+			maxlen -= n;
+			len += n;
+
+			read_client_msg(buffer, little_endian, MESSAGE_LEN);
+
+			send(sock, buffer, len, 0);
+		}
+		close(sock);
+	}
+	close(listen_sock);
+	return 0;
+}
 
