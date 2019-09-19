@@ -1,0 +1,4 @@
+*.out
+server
+!server.c
+
