@@ -28,38 +28,28 @@ void read_client_msg(char *big_endian_arr, char *lil_endian_arr, int len)
 	priority = big_endain_arr[49];
 	*/
 	uint64_t bin = 0;
-
 	int i;
-	for (i = 32; i > 0; i--)
+	for (i = 31; i > 0; i--)
 	{
-		bin = bin | ((uint64_t)big_endian_arr[i] << 8 * (32 - i));
-		printf("%d", (uint8_t)big_endian_arr[i]);
+		bin = bin | ((uint64_t)big_endian_arr[i] << (8 * (i)));
 	}
+	printf("%lu ", bin);
 
-	printf(" ");
+	uint64_t start = 0;
+	for (i = 39; i > 31; i--)
+	{
+		start = start | ((uint64_t)big_endian_arr[i] << (8*(i - 31)));
+	}
+	printf(" %lu", start);
 
-	for (i = 40; i > 32; i--)
-		printf("%d", (uint8_t)big_endian_arr[i]);
-
-	printf(" ");
-
-	for (i = 48; i > 40; i--)
-		printf("%d", (uint8_t)big_endian_arr[i]);
-
-	printf(" ");
+	uint64_t end = 0;
+	for (i = 47; i > 39; i--)
+	{
+		end = end | ((uint64_t)big_endian_arr[i] << (8 * (i - 39)));
+	}
+	printf(" %lu ", end);
 			
 	printf("%d\n", (uint8_t)big_endian_arr[48]);
-
-	printf("BIN: %lu\n", bin);
-/*
-	int i;
-	for (i = 0; i < len; i++)
-	{
-		//big_endian_arr[i] = htole64(be64toh(lil_endian_arr[i]));
-		//printf("%d\n", i);
-		printf("%d\n", (char)htole64(be64toh(lil_endian_arr[i])));
-
-	}*/
 }
 
 int main(int argc, char *argv[])
