@@ -37,30 +37,36 @@ void read_client_msg(char *big_endian_arr, char *lil_endian_arr, int len)
 	end = big_endian_arr[40:48];
 	priority = big_endain_arr[49];
 	*/
+
+	// We can not store the hash in a number, we have to use an array
+	// of chars - this is because the hash is 256 bits, and there isn't
+	// a `uint256_t`.
 	int i;
 	printf("0x");
 	for (i = 0; i < 32; i++)
 	{
-		printf("%x", (unsigned char)big_endian_arr[i]);
-		lil_endian_arr[31 - i] = (unsigned char)big_endian_arr[i];
+		printf("%02x", (unsigned char)big_endian_arr[i]);
+		lil_endian_arr[31 - i] = big_endian_arr[i];
 	}
 	printf(" ");
 
 	uint64_t start = 0;
 	for (i = 32; i < 40; i++)
 	{
-		start = start | ((uint32_t)big_endian_arr[i] << (8 * (39 - i)));
+		start = start | ((unsigned char)big_endian_arr[i] << (8 * (39 - i)));
+		lil_endian_arr[39 - i] = big_endian_arr[i];
 	}
 	printf("%lu ", start);
 
 	uint64_t end = 0;
 	for (i = 40; i < 48; i++)
 	{
-		end = end | ((uint64_t)big_endian_arr[i] << (8 * (47 - i)));
+		end = end | ((unsigned char)big_endian_arr[i] << (8 * (47 - i)));
+		lil_endian_arr[47 - i] = big_endian_arr[i];
 	}
 	printf("%lu ", end);
 			
-	printf("%d\n", (uint8_t)big_endian_arr[48]);
+	printf("%d\n", big_endian_arr[48]);
 }
 
 int main(int argc, char *argv[])
