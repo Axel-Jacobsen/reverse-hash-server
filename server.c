@@ -16,6 +16,16 @@
 #define MESSAGE_LEN 49
 
 
+void binprintf(int v)
+{
+	uint64_t mask=1<<((sizeof(uint32_t)<<3)-1);
+	while(mask)
+	{
+		printf("%d", (v&mask ? 1 : 0));
+		mask >>= 1;
+	}
+}
+
 /*
  * big_endian_arr is the client message, lil_endian_arr is the client message in lil endian
  */
@@ -27,27 +37,28 @@ void read_client_msg(char *big_endian_arr, char *lil_endian_arr, int len)
 	end = big_endian_arr[40:48];
 	priority = big_endain_arr[49];
 	*/
-	uint64_t bin = 0;
 	int i;
-	for (i = 31; i > 0; i--)
+	printf("0x");
+	for (i = 0; i < 32; i++)
 	{
-		bin = bin | ((uint64_t)big_endian_arr[i] << (8 * (i)));
+		printf("%x", (unsigned char)big_endian_arr[i]);
+		lil_endian_arr[31 - i] = (unsigned char)big_endian_arr[i];
 	}
-	printf("%lu ", bin);
+	printf(" ");
 
 	uint64_t start = 0;
-	for (i = 39; i > 31; i--)
+	for (i = 32; i < 40; i++)
 	{
-		start = start | ((uint64_t)big_endian_arr[i] << (8*(i - 31)));
+		start = start | ((uint32_t)big_endian_arr[i] << (8 * (39 - i)));
 	}
-	printf(" %lu", start);
+	printf("%lu ", start);
 
 	uint64_t end = 0;
-	for (i = 47; i > 39; i--)
+	for (i = 40; i < 48; i++)
 	{
-		end = end | ((uint64_t)big_endian_arr[i] << (8 * (i - 39)));
+		end = end | ((uint64_t)big_endian_arr[i] << (8 * (47 - i)));
 	}
-	printf(" %lu ", end);
+	printf("%lu ", end);
 			
 	printf("%d\n", (uint8_t)big_endian_arr[48]);
 }
