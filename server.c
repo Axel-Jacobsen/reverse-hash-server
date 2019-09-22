@@ -2,41 +2,51 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <math.h>
+#include <string.h>
+#include <openssl/sha.h>
 
 #include "messages.h"
 
 #define SERVER_IP "192.168.101.10"
 #define MESSAGE_LEN 49
 
-
-void binprintf(int v)
+void sha256(char *str, unsigned char out_buff[32])
 {
-	uint64_t mask=1<<((sizeof(uint32_t)<<3)-1);
-	while(mask)
+	unsigned char hash[SHA256_DIGEST_LENGTH];
+	SHA256_CTX sha256;
+	SHA256_Init(&sha256);
+	SHA256_Update(&sha256, str, strlen(str));
+	SHA256_Final(hash, &sha256);
+	uint8_t i = 0;
+	for (i = 0; i < 32; i++)
 	{
-		printf("%d", (v&mask ? 1 : 0));
-		mask >>= 1;
+		out_buff[i] = hash[i];
 	}
 }
 
-/*
- * big_endian_arr is the client message, lil_endian_arr is the client message in lil endian
- */
-void read_client_msg(char *big_endian_arr, char *lil_endian_arr, int len)
+// *big_endian_arr is an array of bytes, lil_endian_arr is a pointer to an array of the same size
+void read_client_msg(uint8_t *big_endian_arr, uint8_t *lil_endian_arr)
 {
 	/*
 	hash = big_endian_arr[0:32];
 	start = big_endain_arr[32:40];
 	end = big_endian_arr[40:48];
-	priority = big_endain_arr[49];
+	priority = big_endain_arr[48];
 	*/
+	uint8_t outbuf[32] = {0};
+	sha256("718216", outbuf);
+	printf("0x");
+	int j;
+	for (j = 0; j < 32; j++)
+	{
+		printf("%02x", outbuf[j]);
+	}
+	printf("\n");
 
 	// We can not store the hash in a number, we have to use an array
 	// of chars - this is because the hash is 256 bits, and there isn't
@@ -45,24 +55,24 @@ void read_client_msg(char *big_endian_arr, char *lil_endian_arr, int len)
 	printf("0x");
 	for (i = 0; i < 32; i++)
 	{
-		printf("%02x", (unsigned char)big_endian_arr[i]);
-		lil_endian_arr[31 - i] = big_endian_arr[i];
+		printf("%02x", big_endian_arr[i]);
+		lil_endian_arr[i] = big_endian_arr[i];
 	}
 	printf(" ");
 
 	uint64_t start = 0;
 	for (i = 32; i < 40; i++)
 	{
-		start = start | ((unsigned char)big_endian_arr[i] << (8 * (39 - i)));
-		lil_endian_arr[39 - i] = big_endian_arr[i];
+		start = start | (big_endian_arr[i] << (8 * (39 - i)));
+		lil_endian_arr[32 + 39 - i] = big_endian_arr[i];
 	}
 	printf("%lu ", start);
 
 	uint64_t end = 0;
 	for (i = 40; i < 48; i++)
 	{
-		end = end | ((unsigned char)big_endian_arr[i] << (8 * (47 - i)));
-		lil_endian_arr[47 - i] = big_endian_arr[i];
+		end = end | (big_endian_arr[i] << (8 * (47 - i)));
+		lil_endian_arr[40 + 47 - i] = big_endian_arr[i];
 	}
 	printf("%lu ", end);
 			
@@ -107,7 +117,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	printf("serving on %s:%d\n", inet_ntoa(server_addr.sin_addr), PORT);
+	printf("\nserving on %s:%d\n", inet_ntoa(server_addr.sin_addr), PORT);
 
 	struct sockaddr_in client_addr;
 	uint client_address_len = 0;
@@ -122,22 +132,42 @@ int main(int argc, char *argv[])
 		}
 
 		int n = 0;
-		int len = 0, maxlen = 49;
-		char buffer[maxlen];
-		char *pbuffer = buffer;
+		int len = 0, maxlen=MESSAGE_LEN;
+		uint8_t buffer[MESSAGE_LEN] = {0};
+		uint8_t *pbuffer = buffer;
 
 		char *client_ip = inet_ntoa(client_addr.sin_addr);
-		char little_endian[MESSAGE_LEN];
+		uint8_t lil_endian[MESSAGE_LEN] = {0};
 
-		printf("client connected with ip address: %s\n", client_ip);
+		printf("\nclient connected with ip address: %s\n", client_ip);
 		while ((n = recv(sock, pbuffer, maxlen, 0)) > 0)
 		{
 			pbuffer += n;
 			maxlen -= n;
 			len += n;
 
-			read_client_msg(buffer, little_endian, MESSAGE_LEN);
+			read_client_msg(buffer, lil_endian);
+			int i;
+			printf("0x");
+			for (i = 0; i < 32; i++)
+			{
+				printf("%02x", lil_endian[i]);
+			}
+			printf("\n");
 
+			uint64_t start = 0;
+			for (i = 32; i < 40; i++)
+			{
+				start = start | (lil_endian[i] << (8 * (i)));
+			}
+			printf("start %lu ", start);
+
+			uint64_t end = 0;
+			for (i = 40; i < 48; i++)
+			{
+				end = end | (lil_endian[i] << (8 * (i)));
+			}
+			printf("end %lu \n", end);
 			send(sock, buffer, len, 0);
 		}
 		close(sock);
