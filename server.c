@@ -147,27 +147,6 @@ int main(int argc, char *argv[])
 			len += n;
 
 			read_client_msg(buffer, lil_endian);
-			int i;
-			printf("0x");
-			for (i = 0; i < 32; i++)
-			{
-				printf("%02x", lil_endian[i]);
-			}
-			printf("\n");
-
-			uint64_t start = 0;
-			for (i = 32; i < 40; i++)
-			{
-				start = start | (lil_endian[i] << (8 * (i)));
-			}
-			printf("start %lu ", start);
-
-			uint64_t end = 0;
-			for (i = 40; i < 48; i++)
-			{
-				end = end | (lil_endian[i] << (8 * (i)));
-			}
-			printf("end %lu \n", end);
 			send(sock, buffer, len, 0);
 		}
 		close(sock);
