@@ -8,25 +8,19 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <string.h>
-#include <openssl/sha.h>
+#include <inttypes.h>
 
 #include "messages.h"
 
 #define SERVER_IP "192.168.101.10"
 #define MESSAGE_LEN 49
 
-void sha256(char *str, unsigned char out_buff[32])
+void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 {
-	unsigned char hash[SHA256_DIGEST_LENGTH];
 	SHA256_CTX sha256;
 	SHA256_Init(&sha256);
-	SHA256_Update(&sha256, str, strlen(str));
-	SHA256_Final(hash, &sha256);
-	uint8_t i = 0;
-	for (i = 0; i < 32; i++)
-	{
-		out_buff[i] = hash[i];
-	}
+	SHA256_Update(&sha256, v, sizeof(v));
+	SHA256_Final(out_buff, &sha256);
 }
 
 // *big_endian_arr is an array of bytes, lil_endian_arr is a pointer to an array of the same size
@@ -39,7 +33,11 @@ void read_client_msg(uint8_t *big_endian_arr, uint8_t *lil_endian_arr)
 	priority = big_endain_arr[48];
 	*/
 	uint8_t outbuf[32] = {0};
-	sha256("718216", outbuf);
+	uint64_t f = 2;
+	char foo[8];
+	sprintf(foo, "%" PRIu64, f);
+	sha256(&f, outbuf);
+
 	printf("0x");
 	int j;
 	for (j = 0; j < 32; j++)
@@ -48,15 +46,11 @@ void read_client_msg(uint8_t *big_endian_arr, uint8_t *lil_endian_arr)
 	}
 	printf("\n");
 
-	// We can not store the hash in a number, we have to use an array
-	// of chars - this is because the hash is 256 bits, and there isn't
-	// a `uint256_t`.
 	int i;
 	printf("0x");
 	for (i = 0; i < 32; i++)
 	{
 		printf("%02x", big_endian_arr[i]);
-		lil_endian_arr[i] = big_endian_arr[i];
 	}
 	printf(" ");
 
@@ -64,15 +58,13 @@ void read_client_msg(uint8_t *big_endian_arr, uint8_t *lil_endian_arr)
 	for (i = 32; i < 40; i++)
 	{
 		start = start | (big_endian_arr[i] << (8 * (39 - i)));
-		lil_endian_arr[32 + 39 - i] = big_endian_arr[i];
 	}
 	printf("%lu ", start);
-
+			
 	uint64_t end = 0;
 	for (i = 40; i < 48; i++)
 	{
 		end = end | (big_endian_arr[i] << (8 * (47 - i)));
-		lil_endian_arr[40 + 47 - i] = big_endian_arr[i];
 	}
 	printf("%lu ", end);
 			
