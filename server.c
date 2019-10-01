@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <openssl/sha.h>
+#include <inttypes.h>
 
 #include "messages.h"
 
@@ -39,9 +40,13 @@ void read_client_msg(uint8_t *big_endian_arr, uint8_t *lil_endian_arr)
 	priority = big_endain_arr[48];
 	*/
 	uint8_t outbuf[32] = {0};
-	sha256("718216", outbuf);
+	uint64_t f = htole64(2);
+	char foo[8];
+	sprintf(foo, "%" PRIu64, f);
+	sha256(foo, outbuf);
+
 	printf("0x");
-	int j;
+	uint8_t j;
 	for (j = 0; j < 32; j++)
 	{
 		printf("%02x", outbuf[j]);
@@ -52,7 +57,13 @@ void read_client_msg(uint8_t *big_endian_arr, uint8_t *lil_endian_arr)
 	// of chars - this is because the hash is 256 bits, and there isn't
 	// a `uint256_t`.
 	int i;
-	printf("0x");
+	printf("\n0x");
+	for (i = 0; i < 32; i++)
+	{
+		printf("%02x", big_endian_arr[i]);
+		lil_endian_arr[i] = big_endian_arr[i];
+	}
+	printf("\n0x");
 	for (i = 0; i < 32; i++)
 	{
 		printf("%02x", big_endian_arr[i]);
@@ -67,7 +78,7 @@ void read_client_msg(uint8_t *big_endian_arr, uint8_t *lil_endian_arr)
 		lil_endian_arr[32 + 39 - i] = big_endian_arr[i];
 	}
 	printf("%lu ", start);
-
+			
 	uint64_t end = 0;
 	for (i = 40; i < 48; i++)
 	{
