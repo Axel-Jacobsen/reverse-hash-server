@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 	}
 
 	// Listen on TCP socket	
-	int wait_size = 16; // number of clients that we queue before connection is busy
+	int wait_size = 65535; // number of clients that we queue before connection is busy
 	if (listen(listen_sock, wait_size) < 0)
 	{
 		perror("couldn't open socket for listening");
@@ -151,7 +151,6 @@ int main(int argc, char *argv[])
 
 	struct sockaddr_in client_addr;
 	uint client_address_len = 0;
-
 	while (1)
 	{
 		int sock;
