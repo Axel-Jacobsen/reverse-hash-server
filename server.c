@@ -14,6 +14,9 @@
 
 #define SERVER_IP "192.168.101.10"
 #define MESSAGE_LEN 49
+#define SHA_LEN 32
+#define RESPONSE_LEN 8
+
 
 void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 {
@@ -24,16 +27,27 @@ void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 }
 
 // *big_endian_arr is an array of bytes, lil_endian_arr is a pointer to an array of the same size
-void read_client_msg(uint8_t *big_endian_arr, uint8_t *lil_endian_arr)
+void read_client_msg(uint8_t *big_endian_arr, uint8_t *response_arr)
 {
+	int num = 1;	
+	if(*(char *)&num == 1)
+	{
+		printf("Little-Endian\n");
+	}
+	else
+	{
+		printf("Big-Endian\n");
+	}
 	/*
 	hash = big_endian_arr[0:32];
 	start = big_endain_arr[32:40];
 	end = big_endian_arr[40:48];
 	priority = big_endain_arr[48];
 	*/
-	uint8_t outbuf[32] = {0};
-	uint64_t f = 2;
+
+	//Test
+	uint8_t outbuf[SHA_LEN] = {0};
+	uint64_t f = 1;
 	char foo[8];
 	sprintf(foo, "%" PRIu64, f);
 	sha256(&f, outbuf);
@@ -45,7 +59,10 @@ void read_client_msg(uint8_t *big_endian_arr, uint8_t *lil_endian_arr)
 		printf("%02x", outbuf[j]);
 	}
 	printf("\n");
+	
 
+	//Process input
+	uint8_t sha256_test[SHA_LEN] = {0};
 	int i;
 	printf("0x");
 	for (i = 0; i < 32; i++)
@@ -69,11 +86,32 @@ void read_client_msg(uint8_t *big_endian_arr, uint8_t *lil_endian_arr)
 	printf("%lu ", end);
 			
 	printf("%d\n", big_endian_arr[48]);
+
+	int sha_good = 1;
+	uint64_t k;
+	uint64_t k_conv;
+	for(k = start; k < end; k++){
+
+		sha_good = 1;
+		sha256(&k, sha256_test);
+
+		for(i = 0; i < 32; i++){
+			if(big_endian_arr[i] != sha256_test[i]){
+				sha_good = 0;
+				break;
+			}
+		}
+		if(sha_good){
+			k_conv = htobe64(k);
+			memcpy(response_arr, &k_conv, sizeof(k_conv));
+			break;
+		}
+		
+	}
 }
 
 int main(int argc, char *argv[])
-{
-	int PORT;
+{	int PORT;
 	if (argc > 1)
 		PORT = atoi(argv[1]);
 
@@ -127,9 +165,10 @@ int main(int argc, char *argv[])
 		int len = 0, maxlen=MESSAGE_LEN;
 		uint8_t buffer[MESSAGE_LEN] = {0};
 		uint8_t *pbuffer = buffer;
+		uint8_t response[RESPONSE_LEN] = {0};
 
 		char *client_ip = inet_ntoa(client_addr.sin_addr);
-		uint8_t lil_endian[MESSAGE_LEN] = {0};
+		//uint8_t lil_endian[MESSAGE_LEN] = {0};
 
 		printf("\nclient connected with ip address: %s\n", client_ip);
 		while ((n = recv(sock, pbuffer, maxlen, 0)) > 0)
@@ -138,8 +177,8 @@ int main(int argc, char *argv[])
 			maxlen -= n;
 			len += n;
 
-			read_client_msg(buffer, lil_endian);
-			send(sock, buffer, len, 0);
+			read_client_msg(buffer, response);
+			send(sock, response, RESPONSE_LEN, 0);
 		}
 		close(sock);
 	}
