@@ -32,11 +32,11 @@ void read_client_msg(uint8_t *big_endian_arr, uint8_t *response_arr)
 	int num = 1;	
 	if(*(char *)&num == 1)
 	{
-		printf("Little-Endian\n");
+		//printf("Little-Endian\n");
 	}
 	else
 	{
-		printf("Big-Endian\n");
+		//printf("Big-Endian\n");
 	}
 	/*
 	hash = big_endian_arr[0:32];
@@ -44,7 +44,7 @@ void read_client_msg(uint8_t *big_endian_arr, uint8_t *response_arr)
 	end = big_endian_arr[40:48];
 	priority = big_endain_arr[48];
 	*/
-
+/*
 	//Test
 	uint8_t outbuf[SHA_LEN] = {0};
 	uint64_t f = 1;
@@ -59,33 +59,35 @@ void read_client_msg(uint8_t *big_endian_arr, uint8_t *response_arr)
 		printf("%02x", outbuf[j]);
 	}
 	printf("\n");
-	
+*/	
 
 	//Process input
 	uint8_t sha256_test[SHA_LEN] = {0};
 	int i;
-	printf("0x");
+	//printf("0x");
 	for (i = 0; i < 32; i++)
 	{
-		printf("%02x", big_endian_arr[i]);
+		//printf("%02x", big_endian_arr[i]);
 	}
-	printf(" ");
+	//printf(" ");
 
 	uint64_t start = 0;
 	for (i = 32; i < 40; i++)
 	{
-		start = start | (big_endian_arr[i] << (8 * (39 - i)));
+		start = start | (((uint64_t)big_endian_arr[i]) << (8 * (39 - i)));
 	}
-	printf("%lu ", start);
+		
+		//printf(" %lu ", start);
+		
 			
 	uint64_t end = 0;
 	for (i = 40; i < 48; i++)
 	{
-		end = end | (big_endian_arr[i] << (8 * (47 - i)));
+		end = end | (((uint64_t)big_endian_arr[i]) << (8 * (47 - i)));
 	}
-	printf("%lu ", end);
+	//printf("%lu ", end);
 			
-	printf("%d\n", big_endian_arr[48]);
+	//printf("%d\n", big_endian_arr[48]);
 
 	int sha_good = 1;
 	uint64_t k;
@@ -169,7 +171,7 @@ int main(int argc, char *argv[])
 		char *client_ip = inet_ntoa(client_addr.sin_addr);
 		//uint8_t lil_endian[MESSAGE_LEN] = {0};
 
-		printf("\nclient connected with ip address: %s\n", client_ip);
+		//printf("\nclient connected with ip address: %s\n", client_ip);
 		while ((n = recv(sock, pbuffer, maxlen, 0)) > 0)
 		{
 			pbuffer += n;
