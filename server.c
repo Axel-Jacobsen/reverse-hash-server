@@ -52,15 +52,14 @@ void read_client_msg(uint8_t *big_endian_arr, uint8_t *response_arr)
 	sprintf(foo, "%" PRIu64, f);
 	sha256(&f, outbuf);
 
-	printf("0x");
+	//printf("0x");
 	int j;
 	for (j = 0; j < 32; j++)
 	{
-		printf("%02x", outbuf[j]);
+		//printf("%02x", outbuf[j]);
 	}
 	printf("\n");
 */	
-
 	//Process input
 	uint8_t sha256_test[SHA_LEN] = {0};
 	int i;
@@ -77,9 +76,8 @@ void read_client_msg(uint8_t *big_endian_arr, uint8_t *response_arr)
 		start = start | (((uint64_t)big_endian_arr[i]) << (8 * (39 - i)));
 	}
 		
-		//printf(" %lu ", start);
-		
-			
+	//printf(" %lu ", start);
+				
 	uint64_t end = 0;
 	for (i = 40; i < 48; i++)
 	{
@@ -149,7 +147,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	printf("\nserving on %s:%d\n", inet_ntoa(server_addr.sin_addr), PORT);
+	//printf("\nserving on %s:%d\n", inet_ntoa(server_addr.sin_addr), PORT);
 
 	struct sockaddr_in client_addr;
 	uint client_address_len = 0;
@@ -168,7 +166,7 @@ int main(int argc, char *argv[])
 		uint8_t *pbuffer = buffer;
 		uint8_t response[RESPONSE_LEN] = {0};
 
-		char *client_ip = inet_ntoa(client_addr.sin_addr);
+		//char *client_ip = inet_ntoa(client_addr.sin_addr);
 		//uint8_t lil_endian[MESSAGE_LEN] = {0};
 
 		//printf("\nclient connected with ip address: %s\n", client_ip);
