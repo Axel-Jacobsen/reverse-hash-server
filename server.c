@@ -16,7 +16,73 @@
 #define MESSAGE_LEN 49
 #define SHA_LEN 32
 #define RESPONSE_LEN 8
+#define HEAP_SIZE 16
 
+//Some setup for the priority heap
+struct request{
+	uint8_t package[MESSAGE_LEN];
+	uint8_t priority;
+	int socket;
+};
+
+struct heap{
+	uint size;
+	uint count;
+	request* data;
+};
+
+request initReq(struct request* r, uint8_t* package, int sock){
+	memcpy(r->package, package, MESSAGE_LEN*sizeof(uint8_t));
+	r->socket = sock;
+	r->priority = package[48];
+}
+
+heap initHeap(struct heap* h, int size){
+	h->data = malloc(size*sizeof(struct request));
+	h->size = size;
+	h->count = 0;
+}
+
+void heap_push(struct heap* h, struct request value){
+	/*Potential rezising of the heap
+	if (h->count == h->size){
+		h->size <<= 1;
+		h->data = realloc(h->data, sizeof(struct request) * h->size)
+		if(!h->data) _exit(1); //Exit if the memory allocation fails
+	}
+	*/
+	int i, j;
+	for (i = 0; i < h->count; i++){
+		if (value->priority > h->data[i]->priority) {
+			for (j = h->count; j>i; j--){
+				h->data[j] = h->data[j-1];
+			}
+			h->data[i] = value;
+			h->count++;
+			return;
+		}
+	}
+	h->data[i] = value;
+	h->count++;
+}
+
+request heap_pop(struct heap* h){
+	request temp = h->data[0];
+	h->count--;
+	int i;
+	for (i = 0; i < h->count; i++){
+		h->data[i] = h->data[i+1];
+	}
+	h->data[h->count] = null;
+	/* Potebtial resizing of the heap
+	if ((h->count <= (h->size >> 2)) && (h->size > HEAP_SIZE)){
+		h->size >>=1;
+		h->data = realloc(h->data, sizeof(type) * h->size);
+		if (!h->data) _exit(1); //Exit if the memory allocation fails
+	}
+	*/
+	return temp;
+}
 
 void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 {
@@ -66,7 +132,7 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 }
 
 int main(int argc, char *argv[])
-{	
+{
 	int PORT;
 	if (argc > 1)
 		PORT = atoi(argv[1]);
@@ -120,18 +186,29 @@ int main(int argc, char *argv[])
 		uint8_t buffer[MESSAGE_LEN] = {0};
 		uint8_t *pbuffer = buffer;
 		uint8_t response[RESPONSE_LEN] = {0};
+
+		int listFilled = 0;
+		heap prioList;
+		initHeap(&prioList, HEAP_SIZE);
 		while ((n = recv(sock, pbuffer, maxlen, 0)) > 0)
 		{
 			pbuffer += n;
 			maxlen -= n;
 			len += n;
 
-			rev_hash(buffer, response);
-			send(sock, response, RESPONSE_LEN, 0);
+			request req;
+			initReq(&req, buffer, sock);
+			heap_push(&prioList, req);
+			listFilled++;
+
+			if (listFilled > 9){
+				request highestPrio = heap_pop(prioList);
+				rev_hash(highestPrio->package, response);     //rev_hash(buffer, response);
+				send(highestPrio->socket, response, RESPONSE_LEN, 0);		//send(sock, response, RESPONSE_LEN, 0);
+			}
 		}
 		close(sock);
 	}
 	close(listen_sock);
 	return 0;
 }
-
