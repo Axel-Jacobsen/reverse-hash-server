@@ -28,22 +28,22 @@ struct request{
 struct heap{
 	uint size;
 	uint count;
-	request* data;
+	struct request* data;
 };
 
-request initReq(struct request* r, uint8_t* package, int sock){
+void initReq(struct request* r, uint8_t* package, int sock){
 	memcpy(r->package, package, MESSAGE_LEN*sizeof(uint8_t));
 	r->socket = sock;
 	r->priority = package[48];
 }
 
-heap initHeap(struct heap* h, int size){
+void initHeap(struct heap* h, int size){
 	h->data = malloc(size*sizeof(struct request));
 	h->size = size;
 	h->count = 0;
 }
 
-void heap_push(struct heap* h, struct request value){
+void heap_push(struct heap* h, struct request req, int value){
 	/*Potential rezising of the heap
 	if (h->count == h->size){
 		h->size <<= 1;
@@ -53,27 +53,27 @@ void heap_push(struct heap* h, struct request value){
 	*/
 	int i, j;
 	for (i = 0; i < h->count; i++){
-		if (value->priority > h->data[i]->priority) {
+		if (value > (h->data[i]).priority) {
 			for (j = h->count; j>i; j--){
 				h->data[j] = h->data[j-1];
 			}
-			h->data[i] = value;
+			h->data[i] = req;
 			h->count++;
 			return;
 		}
 	}
-	h->data[i] = value;
+	h->data[i] = req;
 	h->count++;
 }
 
-request heap_pop(struct heap* h){
-	request temp = h->data[0];
+struct request heap_pop(struct heap* h){
+	struct request temp = h->data[0];
 	h->count--;
 	int i;
 	for (i = 0; i < h->count; i++){
 		h->data[i] = h->data[i+1];
 	}
-	h->data[h->count] = null;
+	//h->data[h->count] = null;
 	/* Potebtial resizing of the heap
 	if ((h->count <= (h->size >> 2)) && (h->size > HEAP_SIZE)){
 		h->size >>=1;
@@ -188,7 +188,7 @@ int main(int argc, char *argv[])
 		uint8_t response[RESPONSE_LEN] = {0};
 
 		int listFilled = 0;
-		heap prioList;
+		struct heap prioList;
 		initHeap(&prioList, HEAP_SIZE);
 		while ((n = recv(sock, pbuffer, maxlen, 0)) > 0)
 		{
@@ -196,15 +196,16 @@ int main(int argc, char *argv[])
 			maxlen -= n;
 			len += n;
 
-			request req;
+			struct request req;
 			initReq(&req, buffer, sock);
-			heap_push(&prioList, req);
+			heap_push(&prioList, req, req.priority);
 			listFilled++;
+			printf("%d\n",listFilled);
 
 			if (listFilled > 9){
-				request highestPrio = heap_pop(prioList);
-				rev_hash(highestPrio->package, response);     //rev_hash(buffer, response);
-				send(highestPrio->socket, response, RESPONSE_LEN, 0);		//send(sock, response, RESPONSE_LEN, 0);
+				struct request highestPrio = heap_pop(&prioList);
+				rev_hash(highestPrio.package, response);//rev_hash(buffer, response);
+				send(highestPrio.socket, response, RESPONSE_LEN, 0);	//send(sock, response, RESPONSE_LEN, 0);
 			}
 		}
 		close(sock);
