@@ -52,7 +52,7 @@ int check_cache(uint8_t *big_endian_arr, uint8_t *response_arr)
 			//memcpy(response_arr, &cache_value[i], RESPONSE_LEN);
 			int k;
 			for(k = 0; k < RESPONSE_LEN; k++){
-				response_arr[k] = cache_value[k];
+				response_arr[k] = cache_value[i][k];
 			}
 
 			for(printy = 0; printy < sizeof(response_arr); printy++){
