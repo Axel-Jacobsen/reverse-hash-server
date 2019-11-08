@@ -49,7 +49,12 @@ int check_cache(uint8_t *big_endian_arr, uint8_t *response_arr)
 			}
 		}
 		if(sha_good){
-			memcpy(response_arr, &cache_value[i], RESPONSE_LEN);
+			//memcpy(response_arr, &cache_value[i], RESPONSE_LEN);
+			int k;
+			for(k = 0; k < RESPONSE_LEN; k++){
+				response_arr[k] = cache_value[k];
+			}
+
 			for(printy = 0; printy < sizeof(response_arr); printy++){
 				printf("%d", response_arr[printy]);
 				printf(" ");
