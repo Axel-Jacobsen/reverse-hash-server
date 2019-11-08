@@ -17,6 +17,7 @@
 #define SHA_LEN 32
 #define RESPONSE_LEN 8
 
+uint8_t cache[MESSAGE_LEN][100][2] = {NULL};
 
 void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 {
@@ -26,10 +27,34 @@ void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 	SHA256_Final(out_buff, &sha256);
 }
 
+bool check_cache(uint8_t *big_endian_arr, uint8_t *response_arr)
+{
+	int i,j;
+	uint8_t sha_good;
+	for(j = 0; j < 100; j++){
+		sha_good = 1;
+		for (i = 0; i < MESSAGE_LEN; i++){
+			if(big_endian_arr[i] != cache[i][j][0]){
+				sha_good = 0;
+				break;
+			}
+		}
+		if(sha_good){
+			memcpy(response_arr, &cache[i][j][1], sizeof(cache[i][j][1]));
+			break;
+		}
+	}
+	return sha_good;
+}
+
 // *big_endian_arr is an array of bytes, response_arr is a pointer to an array of the same size
 void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 {
-	uint8_t i; //comment
+	if (check_cache(big_endian_arr, response_arr)){
+		break;
+	}
+
+	uint8_t i;
 	uint64_t start = 0;
 	for (i = 32; i < 40; i++)
 	{
@@ -66,7 +91,7 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 }
 
 int main(int argc, char *argv[])
-{	
+{
 	int PORT;
 	if (argc > 1)
 		PORT = atoi(argv[1]);
@@ -134,4 +159,3 @@ int main(int argc, char *argv[])
 	close(listen_sock);
 	return 0;
 }
-
