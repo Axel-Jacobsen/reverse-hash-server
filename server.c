@@ -19,8 +19,8 @@
 #define CACHE_SIZE 100
 
 uint8_t cache_counter = 0;
-uint8_t cache_sha[CACHE_SIZE][SHA_LEN] = {NULL};
-uint8_t cache_value[CACHE_SIZE][RESPONSE_LEN] = {NULL};
+uint8_t cache_sha[CACHE_SIZE][SHA_LEN] = {0};
+uint8_t cache_value[CACHE_SIZE][RESPONSE_LEN] = {0};
 
 void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 {
@@ -35,6 +35,7 @@ int check_cache(uint8_t *big_endian_arr, uint8_t *response_arr)
 	int i,j;
 	uint8_t sha_good;
 	uint64_t answer;
+	printf(big_endian_arr + "\n");
 	for(i = 0; i < CACHE_SIZE; i++){
 		sha_good = 1;
 		for (j = 0; j < SHA_LEN; j++){
