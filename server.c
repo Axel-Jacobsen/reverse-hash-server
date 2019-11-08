@@ -10,12 +10,21 @@
 #include <string.h>
 #include <inttypes.h>
 
+#include <pthread.h>
+
 #include "messages.h"
 
 #define SERVER_IP "192.168.101.10"
 #define MESSAGE_LEN 49
 #define SHA_LEN 32
 #define RESPONSE_LEN 8
+#define NUM_THREADS 10
+
+
+typedef struct req_packet {
+	int sock;
+	uint8_t* buff;
+} req_packet;
 
 
 void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
@@ -47,22 +56,42 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 	uint64_t k;
 	uint64_t k_conv;
 
-	for(k = start; k < end; k++){
+	for(k = start; k < end; k++)
+	{
 		sha_good = 1;
 		sha256(&k, sha256_test);
 
-		for(i = 0; i < 32; i++){
-			if(big_endian_arr[i] != sha256_test[i]){
+		for(i = 0; i < 32; i++)
+		{
+			if(big_endian_arr[i] != sha256_test[i])
+			{
 				sha_good = 0;
 				break;
 			}
 		}
-		if(sha_good){
+		if(sha_good)
+		{
 			k_conv = htobe64(k);
 			memcpy(response_arr, &k_conv, sizeof(k_conv));
 			break;
 		}
 	}
+}
+
+/*
+ * *arg is type req_packet
+ */
+void *handle_rev_hash_request(void *args)
+{
+	req_packet *r = args;
+	uint8_t *response = malloc(RESPONSE_LEN);
+	rev_hash(r->buff, response);
+	send(r->sock, response, RESPONSE_LEN, 0);
+	printf("%d\n", r->sock);
+	free(response);
+
+	pthread_exit(NULL);
+	close(r->sock);
 }
 
 int main(int argc, char *argv[])
@@ -120,16 +149,29 @@ int main(int argc, char *argv[])
 		uint8_t buffer[MESSAGE_LEN] = {0};
 		uint8_t *pbuffer = buffer;
 		uint8_t response[RESPONSE_LEN] = {0};
+
+		pthread_t tid[NUM_THREADS];
+		uint8_t i = 0;
+
 		while ((n = recv(sock, pbuffer, maxlen, 0)) > 0)
 		{
 			pbuffer += n;
 			maxlen -= n;
 			len += n;
 
-			rev_hash(buffer, response);
-			send(sock, response, RESPONSE_LEN, 0);
+			req_packet r;
+			r.sock = sock;
+			r.buff = pbuffer;
+
+			if( pthread_create(&tid[i], NULL, handle_rev_hash_request, &r) != 0 )
+			{
+				printf("Failed to create thread\n");
+			}
+			else
+			{
+				++i;
+			}
 		}
-		close(sock);
 	}
 	close(listen_sock);
 	return 0;
