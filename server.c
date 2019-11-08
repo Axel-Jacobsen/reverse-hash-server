@@ -32,10 +32,14 @@ void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 
 int check_cache(uint8_t *big_endian_arr, uint8_t *response_arr)
 {
-	int i,j;
+	int i,j,printy;
 	uint8_t sha_good;
 	uint64_t answer;
-	printf(big_endian_arr + "\n");
+	for(printy = 0; printy < size(big_endian_arr)){
+		printf(big_endian_arr[printy]);
+		printf("\n");
+	}
+	printf("\n");
 	for(i = 0; i < CACHE_SIZE; i++){
 		sha_good = 1;
 		for (j = 0; j < SHA_LEN; j++){
