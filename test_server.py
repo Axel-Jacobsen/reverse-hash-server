@@ -1,6 +1,6 @@
 #! /usr/bin/python
 
-# USAGE
+# USAGE: ./test_server.py
 # Put this file in your client ssh. Run your server in your server ssh.
 # Run this code and read the outputs
 # Change N to change the number of trials, and change the command to 
