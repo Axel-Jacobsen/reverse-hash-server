@@ -44,8 +44,7 @@ int check_cache(uint8_t *big_endian_arr, uint8_t *response_arr)
 			}
 		}
 		if(sha_good){
-			answer = htobe64(cache_value[i]);
-			memcpy(response_arr, &answer, sizeof(answer));
+			memcpy(response_arr, &cache_value[i], RESPONSE_LEN;
 			break;
 		}
 	}
