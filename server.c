@@ -43,11 +43,13 @@ int check_cache(uint8_t *big_endian_arr, uint8_t *response_arr)
 	for(i = 0; i < CACHE_SIZE; i++){
 		sha_good = 1;
 		for (j = 0; j < SHA_LEN; j++){
+			printf("%d", big_endian_arr[i]);
 			if(big_endian_arr[i] != cache_sha[i][j]){
 				sha_good = 0;
 				break;
 			}
 		}
+		printf("\n");
 		if(sha_good){
 			memcpy(response_arr, cache_value[i], RESPONSE_LEN);
 			/*int k;
@@ -56,16 +58,16 @@ int check_cache(uint8_t *big_endian_arr, uint8_t *response_arr)
 				printf("%d	%d", response_arr[k], cache_value[i][k]);
 			}
 			*/
-			for(printy = 0; printy < sizeof(response_arr); printy++){
+			/*for(printy = 0; printy < sizeof(response_arr); printy++){
 				printf("%d", response_arr[printy]);
 				printf(" ");
 			}
-			//printf(":");
-			for(printy = 0; printy < sizeof(response_arr); printy++){
-				printf("%d", response_arr[printy]);
+			printf(": ");
+			for(printy = 0; printy < sizeof(cache_value[i]); printy++){
+				printf("%d", cache_value[i][printy]);
 				printf(" ");
 			}
-			printf("\n \n");
+			printf("\n \n");*/
 			break;
 		}
 	}
