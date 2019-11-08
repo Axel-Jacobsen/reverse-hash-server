@@ -16,8 +16,10 @@
 #define MESSAGE_LEN 49
 #define SHA_LEN 32
 #define RESPONSE_LEN 8
+#define CACHE_SIZE 100
 
-uint8_t cache[MESSAGE_LEN][100][2] = {NULL};
+uint8_t cache_counter = 0;
+uint8_t cache[SHA_LEN][CACHE_SIZE][2] = {NULL};
 
 void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 {
@@ -31,16 +33,18 @@ bool check_cache(uint8_t *big_endian_arr, uint8_t *response_arr)
 {
 	int i,j;
 	uint8_t sha_good;
-	for(j = 0; j < 100; j++){
+	uint64_t answer;
+	for(j = 0; j < CACHE_SIZE; j++){
 		sha_good = 1;
-		for (i = 0; i < MESSAGE_LEN; i++){
+		for (i = 0; i < SHA_LEN; i++){
 			if(big_endian_arr[i] != cache[i][j][0]){
 				sha_good = 0;
 				break;
 			}
 		}
 		if(sha_good){
-			memcpy(response_arr, &cache[i][j][1], sizeof(cache[i][j][1]));
+			answer = htobe64(cache[0][j][1]);
+			memcpy(response_arr, &answer, sizeof(cache[0][j][1]));
 			break;
 		}
 	}
@@ -84,7 +88,14 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 		}
 		if(sha_good){
 			k_conv = htobe64(k);
+
+			for(int j = 0; i < SHA_LEN; i++){
+				cache[j][cache_counter][0] = big_endian_arr[j];
+			}
+
+			memcpy(cache[0][cache_counter][1], &k_conv, sizeof(k_conv));
 			memcpy(response_arr, &k_conv, sizeof(k_conv));
+			cache_counter = (cache_counter == CACHE_SIZE-1) ? 0 : cache_counter + 1;
 			break;
 		}
 	}
