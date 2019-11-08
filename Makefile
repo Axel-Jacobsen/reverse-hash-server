@@ -1,5 +1,5 @@
 compile:
-	@gcc -o server server.c -O3 -lcrypto
+	@gcc -pthread -o server server.c -Ofast -lcrypto
 
 clean:
 	@rm server
