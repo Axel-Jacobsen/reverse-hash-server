@@ -37,14 +37,14 @@ int check_cache(uint8_t *big_endian_arr, uint8_t *response_arr)
 	uint64_t answer;
 	for(i = 0; i < CACHE_SIZE; i++){
 		sha_good = 1;
-		for (j) = 0; j < SHA_LEN; j++){
+		for (j = 0; j < SHA_LEN; j++){
 			if(big_endian_arr[i] != cache_sha[i][j]){
 				sha_good = 0;
 				break;
 			}
 		}
 		if(sha_good){
-			answer = htobe64(cache_value[i]);
+			answer = htobe64(&cache_value[i]);
 			memcpy(response_arr, &answer, sizeof(answer));
 			break;
 		}
@@ -91,8 +91,9 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 					cache_sha[cache_counter][j] = big_endian_arr[j];
 				}
 				memcpy(cache_value[cache_counter], &k_conv, sizeof(k_conv));
-				memcpy(response_arr, &k_conv, sizeof(k_conv));
 				cache_counter = (cache_counter == CACHE_SIZE-1) ? 0 : cache_counter + 1;
+
+				memcpy(response_arr, &k_conv, sizeof(k_conv));
 				break;
 			}
 		}
