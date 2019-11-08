@@ -151,15 +151,6 @@ int main(int argc, char *argv[])
 	}
 
 	// Listen on TCP socket
-		return 1;
-	}
-
-	// Listen on TCP socket
-		perror("could not bind to socket");
-		return 1;
-	}
-
-	// Listen on TCP socket
 	// number of clients that we queue before connection is busy
 	uint16_t wait_size = 1 << 15;
 	if (listen(listen_sock, wait_size) < 0)
@@ -189,3 +180,12 @@ int main(int argc, char *argv[])
 			pbuffer += n;
 			maxlen -= n;
 			len += n;
+
+			rev_hash(buffer, response);
+			send(sock, response, RESPONSE_LEN, 0);
+		}
+		close(sock);
+	}
+	close(listen_sock);
+	return 0;
+}
