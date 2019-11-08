@@ -90,7 +90,7 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 				for(j = 0; i < SHA_LEN; i++){
 					cache_sha[cache_counter][j] = big_endian_arr[j];
 				}
-				memcpy(cache_value[cache_counter], &k_conv, sizeof(k_conv));
+				memcpy((uint64_t)(cache_value[cache_counter]), (uint64_t)(&k_conv), sizeof(k_conv));
 				cache_counter = (cache_counter == CACHE_SIZE-1) ? 0 : cache_counter + 1;
 
 				memcpy(response_arr, &k_conv, sizeof(k_conv));
