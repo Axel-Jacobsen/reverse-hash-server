@@ -35,11 +35,11 @@ int check_cache(uint8_t *big_endian_arr, uint8_t *response_arr)
 	int i,j,printy;
 	uint8_t sha_good;
 	uint64_t answer;
-	for(printy = 0; printy < sizeof(big_endian_arr); printy++){
+	/*for(printy = 0; printy < sizeof(big_endian_arr); printy++){
 		printf("%d", big_endian_arr[printy]);
 		printf(" ");
 	}
-	printf("\n \n");
+	printf("\n \n");*/
 	for(i = 0; i < CACHE_SIZE; i++){
 		sha_good = 1;
 		for (j = 0; j < SHA_LEN; j++){
@@ -49,12 +49,18 @@ int check_cache(uint8_t *big_endian_arr, uint8_t *response_arr)
 			}
 		}
 		if(sha_good){
-			//memcpy(response_arr, &cache_value[i], RESPONSE_LEN);
-			int k;
+			memcpy(response_arr, cache_value[i], RESPONSE_LEN);
+			/*int k;
 			for(k = 0; k < RESPONSE_LEN; k++){
 				response_arr[k] = cache_value[i][k];
+				printf("%d	%d", response_arr[k], cache_value[i][k]);
 			}
-
+			*/
+			for(printy = 0; printy < sizeof(response_arr); printy++){
+				printf("%d", response_arr[printy]);
+				printf(" ");
+			}
+			//printf(":");
 			for(printy = 0; printy < sizeof(response_arr); printy++){
 				printf("%d", response_arr[printy]);
 				printf(" ");
@@ -145,6 +151,15 @@ int main(int argc, char *argv[])
 	}
 
 	// Listen on TCP socket
+		return 1;
+	}
+
+	// Listen on TCP socket
+		perror("could not bind to socket");
+		return 1;
+	}
+
+	// Listen on TCP socket
 	// number of clients that we queue before connection is busy
 	uint16_t wait_size = 1 << 15;
 	if (listen(listen_sock, wait_size) < 0)
@@ -174,12 +189,3 @@ int main(int argc, char *argv[])
 			pbuffer += n;
 			maxlen -= n;
 			len += n;
-
-			rev_hash(buffer, response);
-			send(sock, response, RESPONSE_LEN, 0);
-		}
-		close(sock);
-	}
-	close(listen_sock);
-	return 0;
-}
