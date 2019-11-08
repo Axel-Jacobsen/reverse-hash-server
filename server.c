@@ -36,7 +36,7 @@ int check_cache(uint8_t *big_endian_arr, uint8_t *response_arr)
 	uint8_t sha_good;
 	uint64_t answer;
 	for(printy = 0; printy < size(big_endian_arr)){
-		printf(big_endian_arr[printy]);
+		printf("%d", big_endian_arr[printy]);
 		printf("\n");
 	}
 	printf("\n");
