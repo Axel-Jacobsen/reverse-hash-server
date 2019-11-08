@@ -1,5 +1,11 @@
 #! /usr/bin/python
 
+# USAGE
+# Put this file in your client ssh. Run your server in your server ssh.
+# Run this code and read the outputs
+# Change N to change the number of trials, and change the command to 
+# control what client test you run (e.g. "run-client-final.sh")
+
 import subprocess
 
 def process_std_out(s):
@@ -16,9 +22,10 @@ if __name__ == '__main__':
 	N = 2
 	avg_score = 0
 	ls = []
+	command = "run-client-milestone.sh"
 	for _ in range(N):
 		print 'starting run %d' % _
-		s = subprocess.check_output(["run-client-milestone.sh"])
+		s = subprocess.check_output([command])
 		score, latencies = process_std_out(s)
 		avg_score += N
 		print '  score  %d' % score
