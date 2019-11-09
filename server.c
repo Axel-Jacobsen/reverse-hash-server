@@ -33,7 +33,7 @@ void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 int check_cache(uint8_t *big_endian_arr, uint8_t *response_arr)
 {
 	int i,j,printy;
-	uint8_t sha_good;
+	uint8_t sha_known;
 	uint64_t answer;
 	/*for(printy = 0; printy < sizeof(big_endian_arr); printy++){
 		printf("%d", big_endian_arr[printy]);
@@ -41,17 +41,23 @@ int check_cache(uint8_t *big_endian_arr, uint8_t *response_arr)
 	}
 	printf("\n \n");*/
 	for(i = 0; i < CACHE_SIZE; i++){
-		sha_good = 1;
+		sha_known = 1;
+		for(j = 0; j < SHA_LEN; j++){
+			//printf("%d", cache_sha[i][j]);
+		}
 		for (j = 0; j < SHA_LEN; j++){
-			printf("%d", big_endian_arr[i]);
 			if(big_endian_arr[i] != cache_sha[i][j]){
-				sha_good = 0;
+				sha_known = 0;
 				break;
 			}
 		}
-		printf("\n");
-		if(sha_good){
-			memcpy(response_arr, cache_value[i], RESPONSE_LEN);
+		//printf("\n \n");
+		uint64_t a = 10;
+		uint64_t an = htobe64(a);
+		if(sha_known){
+			memcpy(response_arr, an/*cache_value[i]*/, RESPONSE_LEN);
+			printf("Found it in cache");
+			printf("\n");
 			/*int k;
 			for(k = 0; k < RESPONSE_LEN; k++){
 				response_arr[k] = cache_value[i][k];
@@ -71,7 +77,7 @@ int check_cache(uint8_t *big_endian_arr, uint8_t *response_arr)
 			break;
 		}
 	}
-	return sha_good;
+	return sha_known;
 }
 
 // *big_endian_arr is an array of bytes, response_arr is a pointer to an array of the same size
@@ -137,6 +143,8 @@ int main(int argc, char *argv[])
 	server_addr.sin_port = htons(PORT);
 	server_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
 
+	int listen_sock;
+	int listen_sock;
 	int listen_sock;
 	// TCP Socket Creation
 	if ((listen_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
