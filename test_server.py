@@ -33,7 +33,7 @@ def process_std_out(s):
 	return (score, pls)
 
 if __name__ == '__main__':
-	N = 2
+	N = 3
 	avg_score = 0
 
 	scores = []
@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
 	for _ in range(N):
 		print 'starting run %d' % _
-		commands = ["./run-client.sh"]
+		commands = ["./run-client-milestone.sh"]
 		s = subprocess.check_output(commands)
 		score, pls = process_std_out(s)
 
@@ -57,11 +57,11 @@ if __name__ == '__main__':
 		f.write('average score: %d\n' % avg_score)
 		for i in xrange(len(scores)):
 			score = scores[i]
-			pls = priority_latency_ls[i][0]
+			pls = priority_latency_ls[i]
 
 			f.write('run %d score %d\n' % (i, score))
 			for pl in pls:
-				f.write('\tpriority (p): %d\tlatency (l): %d\tp*l: %d\n' % (pls[0], pls[1], pls[0] * pls[1]))
+				f.write('\tpriority (p): %d\tlatency (l): %d\tp*l: %d\n' % (pl[0], pl[1], pl[0] * pl[1]))
 			f.write('\n')
 
 	print 'avg score: %d' % avg_score
