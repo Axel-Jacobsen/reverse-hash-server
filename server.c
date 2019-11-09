@@ -41,6 +41,7 @@ int check_cache(uint8_t *big_endian_arr, uint8_t *response_arr)
 	}
 	printf("\n \n");*/
 	for(i = 0; i < CACHE_SIZE; i++){
+
 		sha_known = 1;
 		for(j = 0; j < SHA_LEN; j++){
 			//printf("%d", cache_sha[i][j]);
