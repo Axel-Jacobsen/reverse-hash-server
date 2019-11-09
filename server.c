@@ -10,7 +10,6 @@
 #include <string.h>
 #include <inttypes.h>
 
-#include <pthread.h>
 
 #include "messages.h"
 
@@ -18,13 +17,7 @@
 #define MESSAGE_LEN 49
 #define SHA_LEN 32
 #define RESPONSE_LEN 8
-#define NUM_THREADS 10
-
-
-typedef struct req_packet {
-	int sock;
-	uint8_t* buff;
-} req_packet;
+#define NUM_FORKS 4
 
 
 void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
@@ -78,20 +71,18 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 	}
 }
 
-/*
- * *arg is type req_packet
- */
-void *handle_rev_hash_request(void *args)
+void handle_rev_hash_request(int sock)
 {
-	req_packet *r = args;
-	uint8_t *response = malloc(RESPONSE_LEN);
-	rev_hash(r->buff, response);
-	send(r->sock, response, RESPONSE_LEN, 0);
-	printf("%d\n", r->sock);
-	free(response);
-
-	pthread_exit(NULL);
-	close(r->sock);
+	uint8_t buff[MESSAGE_LEN] = {0};
+	uint8_t *pbuffer = buff;
+	uint8_t n;
+	if((n = recv(sock, pbuffer, MESSAGE_LEN, 0)) > 0)
+	{
+		uint8_t response[RESPONSE_LEN] = {0};
+		rev_hash(buff, response);
+		send(sock, response, RESPONSE_LEN, 0);
+	}
+	close(sock);
 }
 
 int main(int argc, char *argv[])
@@ -135,43 +126,38 @@ int main(int argc, char *argv[])
 
 	struct sockaddr_in client_addr;
 	uint client_address_len = 0;
+	int i = 0;
+	pid_t pid[NUM_FORKS];
+
 	while (1)
 	{
 		int sock;
+		int pid_c = 0;
+
+
 		if ((sock = accept(listen_sock, (struct sockaddr *) &client_addr, &client_address_len)) < 0)
 		{
 			perror("couldn't open a socket to accept data");
 			return 1;
 		}
 
-		int n = 0;
-		int len = 0, maxlen=MESSAGE_LEN;
-		uint8_t buffer[MESSAGE_LEN] = {0};
-		uint8_t *pbuffer = buffer;
-		uint8_t response[RESPONSE_LEN] = {0};
-
-		pthread_t tid[NUM_THREADS];
-		uint8_t i = 0;
-
-		while ((n = recv(sock, pbuffer, maxlen, 0)) > 0)
+		if ((pid_c = fork()) == 0)
 		{
-			pbuffer += n;
-			maxlen -= n;
-			len += n;
-
-			req_packet r;
-			r.sock = sock;
-			r.buff = pbuffer;
-
-			if( pthread_create(&tid[i], NULL, handle_rev_hash_request, &r) != 0 )
+			handle_rev_hash_request(sock);
+		}
+		else
+		{
+			pid[i++] = pid_c;
+			if (i > NUM_FORKS)
 			{
-				printf("Failed to create thread\n");
-			}
-			else
-			{
-				++i;
+				i = 0;
+				while (i < NUM_FORKS) 
+				{
+					waitpid(pid[i++], NULL, 0);
+				}
 			}
 		}
+
 	}
 	close(listen_sock);
 	return 0;
