@@ -126,37 +126,37 @@ int main(int argc, char *argv[])
 
 	struct sockaddr_in client_addr;
 	uint client_address_len = 0;
-	int i = 0;
-	pid_t pid[NUM_FORKS];
+	uint8_t i;
+	pid_t pid[NUM_FORKS] = {-1};
 
 	while (1)
 	{
 		int sock;
 		int pid_c = 0;
 
+		
+		for (i = 0; i < NUM_FORKS; i++)
+		{
+			if (pid[i] == -1) {
 
-		if ((sock = accept(listen_sock, (struct sockaddr *) &client_addr, &client_address_len)) < 0)
-		{
-			perror("couldn't open a socket to accept data");
-			return 1;
-		}
-
-		if ((pid_c = fork()) == 0)
-		{
-			handle_rev_hash_request(sock);
-		}
-		else
-		{
-			pid[i++] = pid_c;
-			if (i > NUM_FORKS)
-			{
-				i = 0;
-				while (i < NUM_FORKS) 
+				if ((sock = accept(listen_sock, (struct sockaddr *) &client_addr, &client_address_len)) < 0)
 				{
-					waitpid(pid[i++], NULL, 0);
+					perror("couldn't open a socket to accept data");
+					return 1;
 				}
+
+				if ((pid_c = fork()) == 0)
+					handle_rev_hash_request(sock);
+				else
+					pid[i] = pid_c;
 			}
 		}
+		for (i = 0; i < NUM_FORKS; i++) {
+			// waitpid(..., WNOHANG) returns -1 if process is done, 0 otherwise
+			int r = waitpid(pid[i], NULL, WNOHANG);
+			if (r == -1)
+				pid[i] = -1;
+		}	
 
 	}
 	close(listen_sock);
