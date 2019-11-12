@@ -76,25 +76,24 @@ void enQueue(struct Queue* q, struct request k){
 }
 
 //Function for extracting node from highest prio queue with elements
-struct request deQueue(struct Queue* q){
+struct QNode* deQueue(struct Queue* q){
 	//Find highest prio queue with elements
 	int i;
 	for (i=NUMBER_OF_PRIOS-1; i>=0; i--){
 		if (q[i].front!=NULL) {break;}
 	}
-	// If empty return NULL
-	if (q[i].front==NULL) return NULL;
+	// If empty 
+	if (q[i].front==NULL) printf("queue is empty");
 
 	//Store previous front and move front one ahead
 	struct QNode* temp = q[i].front;
-	free(temp);
-
+	
 	q[i].front = q[i].front->next;
 
 	//If front becomes NULL, then change rear to NULL
 	if (q[i].front==NULL) q[i].rear=NULL;
 
-	return temp->key;
+	return temp;
 }
 
 
@@ -191,7 +190,7 @@ int main(int argc, char *argv[])
 	// Setup priority Queue
 	struct Queue prioList[NUMBER_OF_PRIOS];
 	int i;
-	for (i=0; i<NUMBER_OF_PRIOS; i++) prioList[i] = createQueue();
+	for (i=0; i<NUMBER_OF_PRIOS; i++) prioList[i] = *createQueue();
 
 	// Set up timeout feature
 	fd_set rset;
@@ -235,10 +234,11 @@ int main(int argc, char *argv[])
 
 
 		if (listFilled > 9){
-			struct request highestPrio = deQueue(prioList);
-			rev_hash(highestPrio.package, response);//rev_hash(buffer, response);
-			send(highestPrio.socket, response, RESPONSE_LEN, 0);	//send(sock, response, RESPONSE_LEN, 0);
-			close(highestPrio.socket);
+			struct QNode* highestPrio = deQueue(prioList);
+			rev_hash(highestPrio->key.package, response);//rev_hash(buffer, response);
+			send(highestPrio->key.socket, response, RESPONSE_LEN, 0);	//send(sock, response, RESPONSE_LEN, 0);
+			close(highestPrio->key.socket);
+			free(highestPrio);
 		}
 
 
