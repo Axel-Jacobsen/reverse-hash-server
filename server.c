@@ -18,7 +18,7 @@
 #define MESSAGE_LEN 49
 #define SHA_LEN 32
 #define RESPONSE_LEN 8
-#define HEAP_SIZE 16
+#define NUMBER_OF_PRIOS 16
 
 //Some setup for the priority heap
 struct request{
@@ -27,67 +27,76 @@ struct request{
 	int socket;
 };
 
-struct heap{
-	uint size;
-	uint count;
-	struct request* data;
+struct QNode{
+	struct request key;
+	struct QNode* next;
 };
 
+struct Queue{
+	struct QNode *front, *rear;
+};
+
+// Function for creating new requests
 void initReq(struct request* r, uint8_t* package, int sock){
 	memcpy(r->package, package, MESSAGE_LEN*sizeof(uint8_t));
 	r->socket = sock;
 	r->priority = package[48];
 }
 
-void initHeap(struct heap* h, int size){
-	h->data = malloc(size*sizeof(struct request));
-	h->size = size;
-	h->count = 0;
-}
-
-void heap_push(struct heap* h, struct request req, int value){
-	/*Potential rezising of the heap
-	if (h->count == h->size){
-		h->size <<= 1;
-		h->data = realloc(h->data, sizeof(struct request) * h->size)
-		if(!h->data) _exit(1); //Exit if the memory allocation fails
-	}
-	*/
-
-	int i, j;
-	for (i = 0; i < h->count; i++){
-		if (value > (h->data[i]).priority) {
-			for (j = h->count; j>i; j--){
-				h->data[j] = h->data[j-1];
-			}
-			h->data[i] = req;
-			h->count++;
-			return;
-		}
-	}
-	h->data[i] = req;
-	h->count++;
-
-}
-
-struct request heap_pop(struct heap* h){
-	struct request temp = h->data[0]; 
-	h->count--;
-	int i;
-	for (i = 0; i < h->count; i++){
-		h->data[i] = h->data[i+1];
-	}
-
-	/* Potebtial resizing of the heap
-	if ((h->count <= (h->size >> 2)) && (h->size > HEAP_SIZE)){
-		h->size >>=1;
-		h->data = realloc(h->data, sizeof(type) * h->size);
-		if (!h->data) _exit(1); //Exit if the memory allocation fails
-	}
-	*/
-
+//Function for creating new queue nodes
+struct QNode* newNode(struct request k){
+	struct QNode* temp = (struct QNode*)malloc(sizeof(struct QNode));
+	temp->key = k;
+	temp->next = NULL;
 	return temp;
 }
+
+// Function for creating new queue
+struct Queue* createQueue(){
+	struct Queue* q = (struct Queue*)malloc(sizeof(struct Queue));
+	q->front = q->rear = NULL;
+	return q;
+}
+
+// Function for adding request to queue
+void enQueue(struct Queue* q, struct request k){
+	// create new node
+	struct QNode* temp = newNode(k);
+
+	//Find index for queue
+	int i = k.priority-1;
+	// If queue is empty, then new node is both front and rear
+	if (q[i].rear == NULL){
+		q[i].front = q[i].rear = temp;
+		return;
+	}
+	//Add new node at the end of queue
+	q[i].rear->next = temp;
+	q[i].rear = temp;
+}
+
+//Function for extracting node from highest prio queue with elements
+struct request deQueue(struct Queue* q){
+	//Find highest prio queue with elements
+	int i;
+	for (i=NUMBER_OF_PRIOS-1; i>=0; i--){
+		if (q[i].front!=NULL) {break;}
+	}
+	// If empty return NULL
+	if (q[i].front==NULL) return NULL;
+
+	//Store previous front and move front one ahead
+	struct QNode* temp = q[i].front;
+	free(temp);
+
+	q[i].front = q[i].front->next;
+
+	//If front becomes NULL, then change rear to NULL
+	if (q[i].front==NULL) q[i].rear=NULL;
+
+	return temp->key;
+}
+
 
 void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 {
@@ -179,17 +188,20 @@ int main(int argc, char *argv[])
 	uint client_address_len = 0;
 
 	int listFilled = 0;
-	struct heap prioList;
-	initHeap(&prioList, HEAP_SIZE);
+	// Setup priority Queue
+	struct Queue prioList[NUMBER_OF_PRIOS];
+	int i;
+	for (i=0; i<NUMBER_OF_PRIOS; i++) prioList[i] = createQueue();
 
+	// Set up timeout feature
 	fd_set rset;
 	FD_ZERO(&rset);
 	FD_SET(listen_sock,&rset);
 	struct timeval tv;
-	
+
 	while (1)
 	{
-		int sock, sel;
+		int sock;
 		FD_ZERO(&rset);
 		FD_SET(listen_sock,&rset);
 		tv.tv_sec = 0;
@@ -199,12 +211,12 @@ int main(int argc, char *argv[])
 		uint8_t buffer[MESSAGE_LEN] = {0};
 		uint8_t *pbuffer = buffer;
 		uint8_t response[RESPONSE_LEN] = {0};
-		if (sel = select(listen_sock+1, &rset, NULL, NULL, &tv)){
+		if (select(listen_sock+1, &rset, NULL, NULL, &tv)){
 		if ((sock = accept(listen_sock, (struct sockaddr *) &client_addr, &client_address_len)) < 0)
 		{
 			perror("couldn't open a socket to accept data");
 			return 1;
-		} 
+		}
 
 		if ((n = recv(sock, pbuffer, maxlen, 0)) > 0)
 		{
@@ -214,22 +226,22 @@ int main(int argc, char *argv[])
 
 			struct request req;
 			initReq(&req, buffer, sock);
-			heap_push(&prioList, req, req.priority);
+			enQueue(prioList, req);
 			listFilled++;
-		
+
 		}
 		}
-	
+
 
 
 		if (listFilled > 9){
-			struct request highestPrio = heap_pop(&prioList);
+			struct request highestPrio = deQueue(prioList);
 			rev_hash(highestPrio.package, response);//rev_hash(buffer, response);
 			send(highestPrio.socket, response, RESPONSE_LEN, 0);	//send(sock, response, RESPONSE_LEN, 0);
 			close(highestPrio.socket);
 		}
-		
-		
+
+
 	}
 	close(listen_sock);
 	return 0;
