@@ -3,7 +3,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <sys/time.h>
 #include <sys/types.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -51,6 +53,7 @@ void heap_push(struct heap* h, struct request req, int value){
 		if(!h->data) _exit(1); //Exit if the memory allocation fails
 	}
 	*/
+
 	int i, j;
 	for (i = 0; i < h->count; i++){
 		if (value > (h->data[i]).priority) {
@@ -64,16 +67,17 @@ void heap_push(struct heap* h, struct request req, int value){
 	}
 	h->data[i] = req;
 	h->count++;
+
 }
 
 struct request heap_pop(struct heap* h){
-	struct request temp = h->data[0];
+	struct request temp = h->data[0]; 
 	h->count--;
 	int i;
 	for (i = 0; i < h->count; i++){
 		h->data[i] = h->data[i+1];
 	}
-	//h->data[h->count] = null;
+
 	/* Potebtial resizing of the heap
 	if ((h->count <= (h->size >> 2)) && (h->size > HEAP_SIZE)){
 		h->size >>=1;
@@ -81,6 +85,7 @@ struct request heap_pop(struct heap* h){
 		if (!h->data) _exit(1); //Exit if the memory allocation fails
 	}
 	*/
+
 	return temp;
 }
 
@@ -172,25 +177,36 @@ int main(int argc, char *argv[])
 
 	struct sockaddr_in client_addr;
 	uint client_address_len = 0;
+
+	int listFilled = 0;
+	struct heap prioList;
+	initHeap(&prioList, HEAP_SIZE);
+
+	fd_set rset;
+	FD_ZERO(&rset);
+	FD_SET(listen_sock,&rset);
+	struct timeval tv;
+	
 	while (1)
 	{
-		int sock;
-		if ((sock = accept(listen_sock, (struct sockaddr *) &client_addr, &client_address_len)) < 0)
-		{
-			perror("couldn't open a socket to accept data");
-			return 1;
-		}
-
+		int sock, sel;
+		FD_ZERO(&rset);
+		FD_SET(listen_sock,&rset);
+		tv.tv_sec = 0;
+		tv.tv_usec = 1000;
 		int n = 0;
 		int len = 0, maxlen=MESSAGE_LEN;
 		uint8_t buffer[MESSAGE_LEN] = {0};
 		uint8_t *pbuffer = buffer;
 		uint8_t response[RESPONSE_LEN] = {0};
+		if (sel = select(listen_sock+1, &rset, NULL, NULL, &tv)){
+		if ((sock = accept(listen_sock, (struct sockaddr *) &client_addr, &client_address_len)) < 0)
+		{
+			perror("couldn't open a socket to accept data");
+			return 1;
+		} 
 
-		int listFilled = 0;
-		struct heap prioList;
-		initHeap(&prioList, HEAP_SIZE);
-		while ((n = recv(sock, pbuffer, maxlen, 0)) > 0)
+		if ((n = recv(sock, pbuffer, maxlen, 0)) > 0)
 		{
 			pbuffer += n;
 			maxlen -= n;
@@ -200,15 +216,20 @@ int main(int argc, char *argv[])
 			initReq(&req, buffer, sock);
 			heap_push(&prioList, req, req.priority);
 			listFilled++;
-			printf("%d\n",listFilled);
-
-			if (listFilled > 9){
-				struct request highestPrio = heap_pop(&prioList);
-				rev_hash(highestPrio.package, response);//rev_hash(buffer, response);
-				send(highestPrio.socket, response, RESPONSE_LEN, 0);	//send(sock, response, RESPONSE_LEN, 0);
-			}
+		
 		}
-		close(sock);
+		}
+	
+
+
+		if (listFilled > 9){
+			struct request highestPrio = heap_pop(&prioList);
+			rev_hash(highestPrio.package, response);//rev_hash(buffer, response);
+			send(highestPrio.socket, response, RESPONSE_LEN, 0);	//send(sock, response, RESPONSE_LEN, 0);
+			close(highestPrio.socket);
+		}
+		
+		
 	}
 	close(listen_sock);
 	return 0;
