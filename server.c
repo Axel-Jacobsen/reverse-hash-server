@@ -17,13 +17,11 @@
 #define MESSAGE_LEN 49
 #define SHA_LEN 32
 #define RESPONSE_LEN 8
-#define MAX_THREADS 4
-#define QUEUE_SIZE 1000
-
-typedef struct Thread_args{
-	sem_t mutex;
-	int sock;
-}Thread_args;
+#define MAX_THREADS 1
+#define QUEUE_SIZE 100
+#define SEM_FULL_INITIAL 0
+#define SEM_EMPTY_INITIAL 100
+#define MUTEX_INITIAL 1
 
 typedef struct FIFO_CircArr{
 	int rear, front;
@@ -32,7 +30,7 @@ typedef struct FIFO_CircArr{
 }FIFO_CircArr;
 
 FIFO_CircArr queue_global;
-
+sem_t mutexD, empty, full;
 //Queue functions
 
 int isFull(){
@@ -136,40 +134,29 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 }
 
 
-void request_handler(int sock){
+void* request_handler_thread(void* args){
         int n = 0;
         int len = 0, maxlen=MESSAGE_LEN;
         uint8_t buffer[MESSAGE_LEN] = {0};
         uint8_t *pbuffer = buffer;
         uint8_t response[RESPONSE_LEN] = {0};
-        while ((n = recv(sock, pbuffer, maxlen, 0)) > 0)
-        {
-                pbuffer += n;
-                maxlen -= n;
-                len += n;
-                rev_hash(buffer, response);
-                send(sock, response, RESPONSE_LEN, 0);
-        }
-        close(sock);
-        //printf("Job done\n");
-}
-
-
-void* worker_thread(void* args){
 	
-	Thread_args* thread_args = (Thread_args*)args;
-	int* int_ptr = malloc(sizeof(int));
-	*int_ptr = 0;
 	while(1){
-		//printf("Waiting on request!\n");
-		while(!*int_ptr)
-		{
-			sem_getvalue(&(thread_args->mutex),int_ptr);
-		}
-		//printf("Semaphore val:%d\n", *int_ptr);
-		//printf("Handling request!\n");
-		request_handler(thread_args->sock);
-		sem_wait(&(thread_args->mutex));
+		int sock;
+		sem_wait(&full);
+		sem_wait(&mutexD);
+		sock = deQueue();
+		sem_post(&mutexD);
+		sem_post(&empty);
+	        while ((n = recv(sock, pbuffer, maxlen, 0)) > 0)
+        	{
+                	pbuffer += n;
+	                maxlen -= n;
+        	        len += n;
+                	rev_hash(buffer, response);
+	                send(sock, response, RESPONSE_LEN, 0);
+        	}
+	        close(sock);
 	}
 }
 
@@ -217,60 +204,48 @@ int main(int argc, char *argv[])
 	struct sockaddr_in client_addr;
 	uint client_address_len = 0;
 	
-	pthread_t rh[MAX_THREADS];
-	Thread_args thread_args[MAX_THREADS];
+	pthread_t rht;
+
+	//Initialize sempahores
+	sem_init(&mutexD, 0, MUTEX_INITIAL);
+	sem_init(&empty, 0, SEM_EMPTY_INITIAL);
+	sem_init(&full, 0, SEM_FULL_INITIAL);
+	//Create threads
 	int i;
 	for(i = 0; i < MAX_THREADS; i++){
-		sem_init(&(thread_args[i].mutex), 0, 0);
-		pthread_create(&rh[i], NULL, worker_thread, (void*)&(thread_args[i]));
+		pthread_create(&rht, NULL, request_handler_thread, NULL);
 	}
-	sleep(2); //Give threads a chance to start
+	sleep(1); //Give threads a chance to start
 
 	printf("\nServing on %s:%d\n", inet_ntoa(server_addr.sin_addr), PORT);
 	int sock;
-	int* semVal = malloc(sizeof(int));
 	queue_global.size = QUEUE_SIZE;
 	queue_global.rear = -1;
 	queue_global.front = -1;
 	queue_global.arr = malloc(QUEUE_SIZE * sizeof(int));
 	while (1)
 	{
-		printf("Hello!\n");	
-		int j = 0;
+			
 		if ((sock = accept(listen_sock, (struct sockaddr *) &client_addr, &client_address_len)) < 0)
                 {
                         perror("couldn't open a socket to accept data");
                         return 1;
                 }
-		printf("\nFront: %d", queue_global.front);
-		printf("Rear: %d\n", queue_global.rear);
+		printf("Request!\n");
+		sleep(1);
+		sem_wait(&empty);
+		printf("Took empty!\n");
+		sleep(1);
+		sem_wait(&mutexD);	
+		printf("Took mutex!\n");
+		sleep(1);
 		enQueue(sock);
-		printf("Front: %d", queue_global.front);
-                printf("Rear: %d\n", queue_global.rear);
-		deQueue();	
-		printf("Front: %d", queue_global.front);
-                printf("Rear: %d\n\n", queue_global.rear);	
-/*
-		while(1)
-		{	
-			sem_getvalue(&(thread_args[j].mutex), semVal);
-			
-			if(*semVal == 0){
-				//printf("Thread number[%d] takes care of the request!\n", j);
-				thread_args[j].sock = sock;
-				sem_post(&(thread_args[j].mutex));
-				break;
-			}	
-	
-			j++;
-			if(j >= MAX_THREADS)
-			{
-				j = 0;	//Reset
-				sleep(1);	//No threads are available, Later replacae with signal
-								
-			}
-		}
-		*/
+		sem_post(&mutexD);
+		printf("Released mutex!\n");
+		sleep(1);
+		sem_post(&full);
+		printf("Incremented full!");
+		sleep(1);
 
         }
 		
