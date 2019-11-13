@@ -17,7 +17,7 @@
 #define MESSAGE_LEN 49
 #define SHA_LEN 32
 #define RESPONSE_LEN 8
-#define MAX_THREADS 1
+#define MAX_THREADS 4
 #define QUEUE_SIZE 100
 #define SEM_FULL_INITIAL 0
 #define SEM_EMPTY_INITIAL 100
@@ -47,7 +47,7 @@ int isEmpty()
 void enQueue(int element){
 	if(isFull())
 	{
-		printf("\n Job queue is full!!!\n");
+		//printf("\n Job queue is full!!!\n");
 	}
 	else
 	{
@@ -57,7 +57,7 @@ void enQueue(int element){
 		}
 		queue_global.rear = (queue_global.rear + 1) % queue_global.size;
 		queue_global.arr[queue_global.rear] = element;
-		printf("\n Inserted -> %d\n", element);
+		//printf("\n Inserted -> %d\n", element);
 	}
 }
 
@@ -68,7 +68,7 @@ int deQueue()
 	int element;
 	if(isEmpty())
 	{
-		printf("\nQueue is empty !!\n");
+		//printf("\nQueue is empty !!\n");
 		return(-1);
 	}else
 	{
@@ -81,7 +81,7 @@ int deQueue()
 		{
 			queue_global.front = (queue_global.front + 1) % queue_global.size;
 		}
-		printf("\nDeleted element -> %d\n", element);
+		//printf("\nDeleted element -> %d\n", element);
 		return element;
 	}
 }
