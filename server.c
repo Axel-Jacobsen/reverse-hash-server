@@ -135,14 +135,15 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 
 
 void* request_handler_thread(void* args){
-        int n = 0;
-        int len = 0, maxlen=MESSAGE_LEN;
         uint8_t buffer[MESSAGE_LEN] = {0};
-        uint8_t *pbuffer = buffer;
         uint8_t response[RESPONSE_LEN] = {0};
 	
 	while(1){
 		int sock;
+		int n = 0;
+		int len = 0;
+		int maxlen = MESSAGE_LEN;
+		uint8_t *pbuffer = buffer;
 		sem_wait(&full);
 		sem_wait(&mutexD);
 		sock = deQueue();
@@ -231,21 +232,11 @@ int main(int argc, char *argv[])
                         perror("couldn't open a socket to accept data");
                         return 1;
                 }
-		printf("Request!\n");
-		sleep(1);
 		sem_wait(&empty);
-		printf("Took empty!\n");
-		sleep(1);
 		sem_wait(&mutexD);	
-		printf("Took mutex!\n");
-		sleep(1);
 		enQueue(sock);
 		sem_post(&mutexD);
-		printf("Released mutex!\n");
-		sleep(1);
 		sem_post(&full);
-		printf("Incremented full!");
-		sleep(1);
 
         }
 		
