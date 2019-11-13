@@ -56,14 +56,14 @@ void* thread_start_function(void* args){
                 }
                 if(sha_good){
 			pthread_cancel(endfunction);
-			printf("START FOUND\n");
+			//printf("START FOUND\n");
                         k_conv = htobe64(k);
                         memcpy(thread_inputs->response_arr, &k_conv, sizeof(k_conv));
 			send(thread_inputs->sock, thread_inputs->response_arr, RESPONSE_LEN, 0);
                         return;
                 }
         }
-
+printf("Start exited normally\n");
 }
 void* thread_end_function(void* args){
 	pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED,NULL);
@@ -86,7 +86,7 @@ void* thread_end_function(void* args){
                 }
                 if(sha_good){
 			pthread_cancel(startfunction);
-                        printf("END FOUND\n");
+                        //printf("END FOUND\n");
                         k_conv = htobe64(k);
                         memcpy(thread_inputs->response_arr, &k_conv, sizeof(k_conv));
 			send(thread_inputs->sock,thread_inputs->response_arr, RESPONSE_LEN, 0);
@@ -125,9 +125,9 @@ void rev_hash(uint8_t *big_endian_arr, int sock)
 	pthread_create(&startfunction, NULL, thread_start_function, (void*)(threadinput));
 	pthread_create(&endfunction, NULL, thread_end_function, (void*)(threadinput));
 	pthread_join(startfunction, NULL);
-	printf("Start returned\n");
+	//printf("Start returned\n");
 	pthread_join(endfunction, NULL);	
-	printf("Both threads returned\n");
+	//printf("Both threads returned\n");
 }
 
 
