@@ -9,7 +9,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <inttypes.h>
-
+#include <pthread.h>
 #include "messages.h"
 
 #define SERVER_IP "192.168.101.10"
@@ -21,6 +21,8 @@ typedef struct Thread_input{
 	int start;
 	int end;
 	int sock;
+	uint8_t *big_endian_arr;
+	uint8_t response_arr[RESPONSE_LEN];
 }Thread_input;
 
 void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
@@ -36,20 +38,20 @@ void* thread_start_function(void* args){
         uint8_t sha256_test[SHA_LEN] = {0};
         uint64_t k;
         uint64_t k_conv;
-
          for(k = thread_inputs->start; k < (thread_inputs->end)/2; k++){
                 sha_good = 1;
                 sha256(&k, sha256_test);
-
+		int i;
                 for(i = 0; i < 32; i++){
-                        if(big_endian_arr[i] != sha256_test[i]){
+                        if(thread_inputs->big_endian_arr[i] != sha256_test[i]){
                                 sha_good = 0;
                                 break;
                         }
                 }
                 if(sha_good){
                         k_conv = htobe64(k);
-                        memcpy(response_arr, &k_conv, sizeof(k_conv));
+                        memcpy(thread_inputs->response_arr, &k_conv, sizeof(k_conv));
+			send(thread_inputs->sock, thread_inputs->response_arr, RESPONSE_LEN, 0);
                         break;
                 }
         }
@@ -62,19 +64,20 @@ void* thread_end_function(void* args){
         uint64_t k;
         uint64_t k_conv;
 
-         for(k = ((thread_inputs->end)/2)+1; k < thread.inputs->end; k++){
+         for(k = ((thread_inputs->end)/2)+1; k < thread_inputs->end; k++){
                 sha_good = 1;
                 sha256(&k, sha256_test);
-
+		int i;
                 for(i = 0; i < 32; i++){
-                        if(big_endian_arr[i] != sha256_test[i]){
+                        if(thread_inputs->big_endian_arr[i] != sha256_test[i]){
                                 sha_good = 0;
                                 break;
                         }
                 }
                 if(sha_good){
                         k_conv = htobe64(k);
-                        memcpy(response_arr, &k_conv, sizeof(k_conv));
+                        memcpy(thread_inputs->response_arr, &k_conv, sizeof(k_conv));
+			send(thread_inputs->sock,thread_inputs->response_arr, RESPONSE_LEN, 0);
                         break;
                 }
         }
@@ -82,7 +85,7 @@ void* thread_end_function(void* args){
 }
                           
 // *big_endian_arr is an array of bytes, response_arr is a pointer to an array of the same size
-void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
+void rev_hash(uint8_t *big_endian_arr, int sock)
 {
 	uint8_t i;
 	uint64_t start = 0;
@@ -101,13 +104,17 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 	uint8_t sha256_test[SHA_LEN] = {0};
 	uint64_t k;
 	uint64_t k_conv;
-	Thread_input threadinput;
-	threadinput.start = start; 
-	threadinput.end = end;
+	
+	Thread_input* threadinput = malloc(sizeof(Thread_input));
+	threadinput->response_arr;
+	threadinput->sock = sock;
+	threadinput->start = start; 
+	threadinput->end = end;
+	threadinput->big_endian_arr = big_endian_arr;
 	pthread_t startfunction;
 	pthread_t endfunction;
-	pthread_create(startfunction, NULL, thread_start_function, (void*)&(thread_input));
-	pthread_create(endfunction, NULL, thread_end_function, (void*)&(thread_input));
+	pthread_create(&startfunction, NULL, thread_start_function, (void*)&(threadinput));
+	pthread_create(&endfunction, NULL, thread_end_function, (void*)&(threadinput));
 	
 
 }
@@ -117,7 +124,7 @@ int main(int argc, char *argv[])
 {	
 	int PORT;
 	if (argc > 1)
-		PORT = ato(argv[1]);
+		PORT = atoi(argv[1]);
 	// Create a socketaddr_in to hold server socket address data, and zero it
 	struct sockaddr_in server_addr = {0};
 
@@ -166,15 +173,13 @@ int main(int argc, char *argv[])
 		int len = 0, maxlen=MESSAGE_LEN;
 		uint8_t buffer[MESSAGE_LEN] = {0};
 		uint8_t *pbuffer = buffer;
-		uint8_t response[RESPONSE_LEN] = {0};
 		while ((n = recv(sock, pbuffer, maxlen, 0)) > 0)
 		{
 			pbuffer += n;
 			maxlen -= n;
 			len += n;
-			threadinput.sock = sock;
-			rev_hash(buffer, response);
-			send(sock, response, RESPONSE_LEN, 0);
+			rev_hash(buffer, sock);
+			//send(sock, response, RESPONSE_LEN, 0);
 		}
 		close(sock);
 	}
