@@ -18,19 +18,76 @@
 #define SHA_LEN 32
 #define RESPONSE_LEN 8
 #define MAX_THREADS 4
-
+#define QUEUE_SIZE 1000
 
 typedef struct Thread_args{
 	sem_t mutex;
 	int sock;
 }Thread_args;
 
-struct JobInfo {
-	int sock;
-	JobInfo* next;
+typedef struct FIFO_CircArr{
+	int rear, front;
+	int size;
+	int* arr;
+}FIFO_CircArr;
 
-	JobInfo(int socket) : sock(socket), next(NULL) {}
-};
+FIFO_CircArr queue_global;
+
+//Queue functions
+
+int isFull(){
+	if((queue_global.front == queue_global.rear + 1) || (queue_global.front == 0 && queue_global.rear == queue_global.size-1)) return 1;
+	return 0;
+}
+
+int isEmpty()
+{
+	if(queue_global.front == -1) return 1;
+	return 0;
+}
+
+void enQueue(int element){
+	if(isFull())
+	{
+		printf("\n Job queue is full!!!\n");
+	}
+	else
+	{
+		if(queue_global.front == -1)
+		{
+			queue_global.front = 0;
+		}
+		queue_global.rear = (queue_global.rear + 1) % queue_global.size;
+		queue_global.arr[queue_global.rear] = element;
+		printf("\n Inserted -> %d\n", element);
+	}
+}
+
+
+
+int deQueue()
+{
+	int element;
+	if(isEmpty())
+	{
+		printf("\nQueue is empty !!\n");
+		return(-1);
+	}else
+	{
+		element = queue_global.arr[queue_global.front];
+		if(queue_global.front == queue_global.rear)
+		{
+			queue_global.front = -1;
+			queue_global.rear = -1;
+		}else
+		{
+			queue_global.front = (queue_global.front + 1) % queue_global.size;
+		}
+		printf("\nDeleted element -> %d\n", element);
+		return element;
+	}
+}
+
 
 void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 {
@@ -172,16 +229,28 @@ int main(int argc, char *argv[])
 	printf("\nServing on %s:%d\n", inet_ntoa(server_addr.sin_addr), PORT);
 	int sock;
 	int* semVal = malloc(sizeof(int));
-
+	queue_global.size = QUEUE_SIZE;
+	queue_global.rear = -1;
+	queue_global.front = -1;
+	queue_global.arr = malloc(QUEUE_SIZE * sizeof(int));
 	while (1)
-	{	
+	{
+		printf("Hello!\n");	
 		int j = 0;
 		if ((sock = accept(listen_sock, (struct sockaddr *) &client_addr, &client_address_len)) < 0)
                 {
                         perror("couldn't open a socket to accept data");
                         return 1;
                 }
-
+		printf("\nFront: %d", queue_global.front);
+		printf("Rear: %d\n", queue_global.rear);
+		enQueue(sock);
+		printf("Front: %d", queue_global.front);
+                printf("Rear: %d\n", queue_global.rear);
+		deQueue();	
+		printf("Front: %d", queue_global.front);
+                printf("Rear: %d\n\n", queue_global.rear);	
+/*
 		while(1)
 		{	
 			sem_getvalue(&(thread_args[j].mutex), semVal);
@@ -201,17 +270,8 @@ int main(int argc, char *argv[])
 								
 			}
 		}
-
-		
-		/*
-		printf("Creating thread to handle request!\n");
-		Socket_info* socket_info = (Socket_info*)malloc(sizeof(Socket_info));
-		socket_info->sock = sock;
-		if(pthread_create(&rh, NULL, request_handler, (void*)socket_info) != 0){
-                	printf("Error creating a new thread going up\n");
-                	exit(1);
-		}
 		*/
+
         }
 		
 	close(listen_sock);
