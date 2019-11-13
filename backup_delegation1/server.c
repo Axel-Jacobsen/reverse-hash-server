@@ -25,13 +25,6 @@ typedef struct Thread_args{
 	int sock;
 }Thread_args;
 
-struct JobInfo {
-	int sock;
-	JobInfo* next;
-
-	JobInfo(int socket) : sock(socket), next(NULL) {}
-};
-
 void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 {
 	SHA256_CTX sha256;
@@ -64,12 +57,19 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
         for(k = start; k < end; k++){
                 sha_good = 1;
                 sha256(&k, sha256_test);
+		if((*big_endian_arr != *sha256_test) || (*(big_endian_arr+1) != *(sha256_test+1))  || (*(big_endian_arr+2) != *(sha256_test+2)) || (*(big_endian_arr+3) != *(sha256_test+3)) || (*(big_endian_arr+4) != *(sha256_test+4)) || (*(big_endian_arr+5) != *(sha256_test+5)) || (*(big_endian_arr+6) != *(sha256_test+6)) || (*(big_endian_arr+7) != *(sha256_test+7)) || (*(big_endian_arr+8) != *(sha256_test+8)) || (*(big_endian_arr+9) != *(sha256_test+9))|| (*(big_endian_arr+10) != *(sha256_test+10))|| (*(big_endian_arr+11) != *(sha256_test+11))|| (*(big_endian_arr+12) != *(sha256_test+12))|| (*(big_endian_arr+13) != *(sha256_test+13))|| (*(big_endian_arr+14) != *(sha256_test+14))|| (*(big_endian_arr+15) != *(sha256_test+15))|| (*(big_endian_arr+16) != *(sha256_test+16))|| (*(big_endian_arr+17) != *(sha256_test+17))|| (*(big_endian_arr+18) != *(sha256_test+18))|| (*(big_endian_arr+19) != *(sha256_test+19))|| (*(big_endian_arr+20) != *(sha256_test+20))|| (*(big_endian_arr+21) != *(sha256_test+21))|| (*(big_endian_arr+22) != *(sha256_test+22))|| (*(big_endian_arr+23) != *(sha256_test+23))|| (*(big_endian_arr+24) != *(sha256_test+24))|| (*(big_endian_arr+25) != *(sha256_test+25))|| (*(big_endian_arr+26) != *(sha256_test+26))|| (*(big_endian_arr+27) != *(sha256_test+27))|| (*(big_endian_arr+28) != *(sha256_test+28))|| (*(big_endian_arr+29) != *(sha256_test+29))|| (*(big_endian_arr+30) != *(sha256_test+30))|| (*(big_endian_arr+31) != *(sha256_test+31))){
+
+			sha_good = 0;
+		}		
+
+		/*
                 for(i = 0; i < 32; i++){
                         if(big_endian_arr[i] != sha256_test[i]){
                                 sha_good = 0;
                                 break;
                         }
                 }
+		*/
                 if(sha_good){
                         k_conv = htobe64(k);
                         memcpy(response_arr, &k_conv, sizeof(k_conv));
