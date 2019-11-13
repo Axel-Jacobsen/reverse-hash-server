@@ -35,13 +35,16 @@ void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 	SHA256_Final(out_buff, &sha256);
 }
 void* thread_start_function(void* args){
-        Thread_input* thread_inputs = (Thread_input*)args;
+        //pthreadcanceltype is the only way to make sure it stops properly for now
+	pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED,NULL);
+	Thread_input* thread_inputs = (Thread_input*)args;
         uint8_t sha_good = 1;
         uint8_t sha256_test[SHA_LEN] = {0};
         uint64_t k;
         uint64_t k_conv;
 	uint64_t diff = ((thread_inputs->end) - (thread_inputs->start))/2; 
          for(k = thread_inputs->start; k < (thread_inputs->end)-diff; k++){
+		pthread_testcancel();
                 sha_good = 1;
                 sha256(&k, sha256_test);
 		int i;
@@ -53,6 +56,7 @@ void* thread_start_function(void* args){
                 }
                 if(sha_good){
 			pthread_cancel(endfunction);
+			printf("START FOUND\n");
                         k_conv = htobe64(k);
                         memcpy(thread_inputs->response_arr, &k_conv, sizeof(k_conv));
 			send(thread_inputs->sock, thread_inputs->response_arr, RESPONSE_LEN, 0);
@@ -62,6 +66,7 @@ void* thread_start_function(void* args){
 
 }
 void* thread_end_function(void* args){
+	pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED,NULL);
         Thread_input* thread_inputs = (Thread_input*)args;
         uint8_t sha_good = 1;
         uint8_t sha256_test[SHA_LEN] = {0};
@@ -69,6 +74,7 @@ void* thread_end_function(void* args){
         uint64_t k_conv;
 	uint64_t diff = ((thread_inputs->end) - (thread_inputs->start))/2;
          for(k = (thread_inputs->end)-diff; k < thread_inputs->end; k++){
+		pthread_testcancel();
                 sha_good = 1;
                 sha256(&k, sha256_test);
 		int i;
@@ -80,13 +86,14 @@ void* thread_end_function(void* args){
                 }
                 if(sha_good){
 			pthread_cancel(startfunction);
+                        printf("END FOUND\n");
                         k_conv = htobe64(k);
                         memcpy(thread_inputs->response_arr, &k_conv, sizeof(k_conv));
 			send(thread_inputs->sock,thread_inputs->response_arr, RESPONSE_LEN, 0);
                         return;
                 }
         }
-
+printf("End exited normally\n");
 }
                           
 // *big_endian_arr is an array of bytes, response_arr is a pointer to an array of the same size
@@ -118,8 +125,9 @@ void rev_hash(uint8_t *big_endian_arr, int sock)
 	pthread_create(&startfunction, NULL, thread_start_function, (void*)(threadinput));
 	pthread_create(&endfunction, NULL, thread_end_function, (void*)(threadinput));
 	pthread_join(startfunction, NULL);
+	printf("Start returned\n");
 	pthread_join(endfunction, NULL);	
-
+	printf("Both threads returned\n");
 }
 
 
