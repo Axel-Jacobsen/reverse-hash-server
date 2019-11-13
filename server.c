@@ -30,7 +30,57 @@ void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 	SHA256_Update(&sha256, v, sizeof(v));
 	SHA256_Final(out_buff, &sha256);
 }
+void* thread_start_function(void* args){
+        Thread_input* thread_inputs = (Thread_input*)args;
+        uint8_t sha_good = 1;
+        uint8_t sha256_test[SHA_LEN] = {0};
+        uint64_t k;
+        uint64_t k_conv;
 
+         for(k = thread_inputs->start; k < (thread_inputs->end)/2; k++){
+                sha_good = 1;
+                sha256(&k, sha256_test);
+
+                for(i = 0; i < 32; i++){
+                        if(big_endian_arr[i] != sha256_test[i]){
+                                sha_good = 0;
+                                break;
+                        }
+                }
+                if(sha_good){
+                        k_conv = htobe64(k);
+                        memcpy(response_arr, &k_conv, sizeof(k_conv));
+                        break;
+                }
+        }
+
+}
+void* thread_end_function(void* args){
+        Thread_input* thread_inputs = (Thread_input*)args;
+        uint8_t sha_good = 1;
+        uint8_t sha256_test[SHA_LEN] = {0};
+        uint64_t k;
+        uint64_t k_conv;
+
+         for(k = ((thread_inputs->end)/2)+1; k < thread.inputs->end; k++){
+                sha_good = 1;
+                sha256(&k, sha256_test);
+
+                for(i = 0; i < 32; i++){
+                        if(big_endian_arr[i] != sha256_test[i]){
+                                sha_good = 0;
+                                break;
+                        }
+                }
+                if(sha_good){
+                        k_conv = htobe64(k);
+                        memcpy(response_arr, &k_conv, sizeof(k_conv));
+                        break;
+                }
+        }
+
+}
+                          
 // *big_endian_arr is an array of bytes, response_arr is a pointer to an array of the same size
 void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 {
@@ -51,65 +101,23 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 	uint8_t sha256_test[SHA_LEN] = {0};
 	uint64_t k;
 	uint64_t k_conv;
-	pthread=()create;
-	create
-}
-
-void* thread_start_function(void* args){
-	Thread_input* thread_inputs = (Thread_input*)args;
-	uint8_t sha_good = 1;
-        uint8_t sha256_test[SHA_LEN] = {0};
-        uint64_t k;
-        uint64_t k_conv;
-
-	 for(k = thread_inputs->start; k < thread_inputs->end; k++){
-                sha_good = 1;
-                sha256(&k, sha256_test);
-
-                for(i = 0; i < 32; i++){
-                        if(big_endian_arr[i] != sha256_test[i]){
-                                sha_good = 0;
-                                break;
-                        }
-                }
-                if(sha_good){
-                        k_conv = htobe64(k);
-                        memcpy(response_arr, &k_conv, sizeof(k_conv));
-                        break;
-                }
-        }
+	Thread_input threadinput;
+	threadinput.start = start; 
+	threadinput.end = end;
+	pthread_t startfunction;
+	pthread_t endfunction;
+	pthread_create(startfunction, NULL, thread_start_function, (void*)&(thread_input));
+	pthread_create(endfunction, NULL, thread_end_function, (void*)&(thread_input));
+	
 
 }
-void* thread_end_function(void* args){
-	Thread_input* thread_inputs = (Thread_input*)args;
-	uint8_t sha_good = 1;
-        uint8_t sha256_test[SHA_LEN] = {0};
-        uint64_t k;
-        uint64_t k_conv;
 
-	 for(k = start; k < end; k++){
-                sha_good = 1;
-                sha256(&k, sha256_test);
 
-                for(i = 0; i < 32; i++){
-                        if(big_endian_arr[i] != sha256_test[i]){
-                                sha_good = 0;
-                                break;
-                        }
-                }
-                if(sha_good){
-                        k_conv = htobe64(k);
-                        memcpy(response_arr, &k_conv, sizeof(k_conv));
-                        break;
-                }
-        }
-
-}
 int main(int argc, char *argv[])
 {	
 	int PORT;
 	if (argc > 1)
-		PORT = atoi(argv[1]);
+		PORT = ato(argv[1]);
 	// Create a socketaddr_in to hold server socket address data, and zero it
 	struct sockaddr_in server_addr = {0};
 
@@ -164,7 +172,7 @@ int main(int argc, char *argv[])
 			pbuffer += n;
 			maxlen -= n;
 			len += n;
-
+			threadinput.sock = sock;
 			rev_hash(buffer, response);
 			send(sock, response, RESPONSE_LEN, 0);
 		}
