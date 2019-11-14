@@ -22,7 +22,7 @@
 
 typedef struct node
 {
-    uint64_t* value;
+    uint64_t value;
     struct node* next;
 }
 node;
@@ -74,7 +74,7 @@ void cache_insert(int key, uint64_t* buffer)
     }
 }
 
- int8_t cache_search(uint8_t* client){
+ int64_t cache_search(uint8_t* client){
   int key = hash(client);
 
   if (cache[key] == NULL){
@@ -108,7 +108,7 @@ void cache_insert(int key, uint64_t* buffer)
   }
   if(sha_good){
     printf("Found in cache : %d\n", key);
-    return (int8_t) predptr->value;
+    return (int64_t) predptr->value;
   }
   else {
     printf("Not found in cache : %d\n", key);
