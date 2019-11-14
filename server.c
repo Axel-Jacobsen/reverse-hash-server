@@ -85,11 +85,13 @@ void cache_insert(int key, uint64_t buffer)
   node* predptr = cache[key];
   uint8_t sha256_test[SHA_LEN] = {0};
   uint8_t sha_good = 1;
-	int i;
+  int i;
+  uint64_t pred_value;
 
   while (1) {
     sha_good = 1;
-    sha256(&predptr->value, sha256_test);
+    node_value = predptr->value;
+    sha256(&pred_value, sha256_test);
 
     for(i = 0; i < SHA_LEN; i++){
 			if(client[i] != sha256_test[i]){
