@@ -18,7 +18,7 @@
 #define RESPONSE_LEN 8
 
 
-struct hashBuffer {
+struct __attribute__((packed)) hashBuffer {
 	uint64_t start;
 	uint64_t end;
 	uint8_t hash[SHA_LEN];
