@@ -29,7 +29,7 @@ node;
 
 node* cache[CACHE_SIZE] = {NULL};
 
-int cache_hash(const uint8_t* hash_arr)
+int cache_hash(uint8_t* hash_arr)
 {
     int i, hash;
 		for(i = 0; i < SHA_LEN; i++){
@@ -38,7 +38,7 @@ int cache_hash(const uint8_t* hash_arr)
 		return PRIME*hash%CACHE_SIZE;
 }
 
-void cache_insert(int key, uint64_t* buffer)
+void cache_insert(int key, uint64_t buffer)
 {
     node* newptr = malloc(sizeof(node));
     if (newptr == NULL)
