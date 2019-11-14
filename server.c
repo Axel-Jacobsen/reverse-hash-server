@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <signal.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -19,6 +20,8 @@
 #define RESPONSE_LEN 8
 #define NUM_FORKS 4
 
+
+uint8_t GLOBAL_FORK_COUNT = 0;
 
 void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 {
@@ -85,6 +88,11 @@ void handle_rev_hash_request(int sock)
 	close(sock);
 }
 
+void handle_finished_fork()
+{
+	GLOBAL_FORK_COUNT--;
+}
+
 int main(int argc, char *argv[])
 {	
 	int PORT;
@@ -126,38 +134,32 @@ int main(int argc, char *argv[])
 
 	struct sockaddr_in client_addr;
 	uint client_address_len = 0;
-	uint8_t i;
-	pid_t pid[NUM_FORKS] = {-1};
+	pid_t daddy_pid = getpid();
+
+	signal(SIGHUP, handle_finished_fork);
 
 	while (1)
 	{
 		int sock;
 		int pid_c = 0;
-
-		
-		for (i = 0; i < NUM_FORKS; i++)
+		while (GLOBAL_FORK_COUNT < NUM_FORKS)
 		{
-			if (pid[i] == -1) {
-
+			if ((pid_c = fork()) == 0)
+			{
 				if ((sock = accept(listen_sock, (struct sockaddr *) &client_addr, &client_address_len)) < 0)
 				{
 					perror("couldn't open a socket to accept data");
 					return 1;
 				}
-
-				if ((pid_c = fork()) == 0)
-					handle_rev_hash_request(sock);
-				else
-					pid[i] = pid_c;
+				handle_rev_hash_request(sock);
+				kill(daddy_pid, SIGHUP);
+			}
+			else
+			{
+				GLOBAL_FORK_COUNT++;
 			}
 		}
-		for (i = 0; i < NUM_FORKS; i++) {
-			// waitpid(..., WNOHANG) returns -1 if process is done, 0 otherwise
-			int r = waitpid(pid[i], NULL, WNOHANG);
-			if (r == -1)
-				pid[i] = -1;
-		}	
-
+		sleep(1);
 	}
 	close(listen_sock);
 	return 0;
