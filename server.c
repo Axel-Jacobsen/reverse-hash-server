@@ -18,7 +18,7 @@
 #define MESSAGE_LEN 49
 #define SHA_LEN 32
 #define RESPONSE_LEN 8
-#define NUM_FORKS 4
+#define NUM_FORKS 8
 
 
 uint8_t GLOBAL_FORK_COUNT = 0;
