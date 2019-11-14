@@ -48,12 +48,13 @@ void initStruct(uint8_t *buffer)
 	{
 		end = end | (((uint64_t)buffer[i]) << (8 * (47 - i)));
 	}
-	
-	//printf("start: %d\n", (int)start);	
+	//printf("priority: %d\n", (int)buffer[48]);	
 	//printf("hashing: %lld\n", hashing);
 	
 	hash.start = start;
 	hash.end = end;
+	hash.priority = buffer[48];
+	//printf("%d\n", (int)hash.priority);
 	memcpy((void *)hash.hash, buffer, SHA_LEN);
 }
 
