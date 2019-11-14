@@ -18,6 +18,16 @@
 #define RESPONSE_LEN 8
 
 
+struct hashBuffer {
+	int start;
+	int end;
+	long hash;
+	short priority;
+	
+	
+}__attribute__((packed));
+
+
 void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 {
 	SHA256_CTX sha256;
@@ -29,6 +39,8 @@ void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 // *big_endian_arr is an array of bytes, response_arr is a pointer to an array of the same size
 void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 {
+	struct hashBuffer hash, test_hash;
+	
 	uint8_t i;
 	uint64_t start = 0;
 	for (i = 32; i < 40; i++)
@@ -41,29 +53,41 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 	{
 		end = end | (((uint64_t)big_endian_arr[i]) << (8 * (47 - i)));
 	}
+	
+	uint64_t hashing = 0;
+	for (i = 0; i < 32; i++)
+	{
+		hashing = hashing | (((uint64_t)big_endian_arr[i]) << (8 * (31 - i)));
+	}
+
+	hash.start = start;
+	hash.end = end;
+	hash.hash = hashing;
 
 	uint8_t sha_good = 1;
 	uint8_t sha256_test[SHA_LEN] = {0};
 	uint64_t k;
 	uint64_t k_conv;
 
-	for(k = start; k < end; k++){
+	for(k = hash.start; k < hash.end; k++){
 		sha_good = 1;
 		sha256(&k, sha256_test);
-
-		for(i = 0; i < 32; i++){
-			if(big_endian_arr[i] != sha256_test[i]){
-				sha_good = 0;
-				break;
-			}
+		
+		uint64_t test_hashing = 0;
+		for(i = 0; i < SHA_LEN; i++)
+		{
+			test_hashing = test_hashing | (((uint64_t)sha256_test[i]) << (8 * ((SHA_LEN-1) - i)));
 		}
-		if(sha_good){
+		
+		test_hash.hash = test_hashing;
+		if(hash.hash = test_hash.hash){
 			k_conv = htobe64(k);
 			memcpy(response_arr, &k_conv, sizeof(k_conv));
 			break;
 		}
 	}
 }
+
 
 int main(int argc, char *argv[])
 {	
@@ -102,7 +126,7 @@ int main(int argc, char *argv[])
 	{
 		perror("couldn't open socket for listening");
 		return 1;
-	}
+	} 
 
 	struct sockaddr_in client_addr;
 	uint client_address_len = 0;
@@ -128,7 +152,7 @@ int main(int argc, char *argv[])
 
 			rev_hash(buffer, response);
 			send(sock, response, RESPONSE_LEN, 0);
-		}
+	}
 		close(sock);
 	}
 	close(listen_sock);
