@@ -16,11 +16,7 @@
 #define MESSAGE_LEN 49
 #define SHA_LEN 32
 #define RESPONSE_LEN 8
-#define CACHE_SIZE 100
 
-uint8_t cache_counter = 0;
-uint8_t cache_sha[CACHE_SIZE][SHA_LEN] = {0};
-uint8_t cache_value[CACHE_SIZE][RESPONSE_LEN] = {0};
 
 void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 {
@@ -30,101 +26,41 @@ void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 	SHA256_Final(out_buff, &sha256);
 }
 
-int check_cache(uint8_t *big_endian_arr, uint8_t *response_arr)
-{
-	int i,j,printy;
-	uint8_t sha_known;
-	uint64_t answer;
-	/*for(printy = 0; printy < sizeof(big_endian_arr); printy++){
-		printf("%d", big_endian_arr[printy]);
-		printf(" ");
-	}
-	printf("\n \n");*/
-	for(i = 0; i < CACHE_SIZE; i++){
-
-		sha_known = 1;
-		for(j = 0; j < SHA_LEN; j++){
-			//printf("%d", cache_sha[i][j]);
-		}
-		for (j = 0; j < SHA_LEN; j++){
-			if(big_endian_arr[i] != cache_sha[i][j]){
-				sha_known = 0;
-				break;
-			}
-		}
-		//printf("\n \n");
-		uint64_t a = 10;
-		uint64_t an = htobe64(a);
-		if(sha_known){
-			memcpy(response_arr, an/*cache_value[i]*/, RESPONSE_LEN);
-			printf("Found it in cache");
-			printf("\n");
-			/*int k;
-			for(k = 0; k < RESPONSE_LEN; k++){
-				response_arr[k] = cache_value[i][k];
-				printf("%d	%d", response_arr[k], cache_value[i][k]);
-			}
-			*/
-			/*for(printy = 0; printy < sizeof(response_arr); printy++){
-				printf("%d", response_arr[printy]);
-				printf(" ");
-			}
-			printf(": ");
-			for(printy = 0; printy < sizeof(cache_value[i]); printy++){
-				printf("%d", cache_value[i][printy]);
-				printf(" ");
-			}
-			printf("\n \n");*/
-			break;
-		}
-	}
-	return sha_known;
-}
-
 // *big_endian_arr is an array of bytes, response_arr is a pointer to an array of the same size
 void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 {
-	if (!(check_cache(big_endian_arr, response_arr))){ //
-		uint8_t i,j;
-		uint64_t start = 0;
-		for (i = 32; i < 40; i++)
-		{
-			start = start | (((uint64_t)big_endian_arr[i]) << (8 * (39 - i)));
-		}
+	uint8_t i;
+	uint64_t start = 0;
+	for (i = 32; i < 40; i++)
+	{
+		start = start | (((uint64_t)big_endian_arr[i]) << (8 * (39 - i)));
+	}
 
-		uint64_t end = 0;
-		for (i = 40; i < 48; i++)
-		{
-			end = end | (((uint64_t)big_endian_arr[i]) << (8 * (47 - i)));
-		}
+	uint64_t end = 0;
+	for (i = 40; i < 48; i++)
+	{
+		end = end | (((uint64_t)big_endian_arr[i]) << (8 * (47 - i)));
+	}
 
-		uint8_t sha_good = 1;
-		uint8_t sha256_test[SHA_LEN] = {0};
-		uint64_t k;
-		uint64_t k_conv;
+	uint8_t sha_good = 1;
+	uint8_t sha256_test[SHA_LEN] = {0};
+	uint64_t k;
+	uint64_t k_conv;
 
-		for(k = start; k < end; k++){
-			sha_good = 1;
-			sha256(&k, sha256_test);
+	for(k = start; k < end; k++){
+		sha_good = 1;
+		sha256(&k, sha256_test);
 
-			for(i = 0; i < 32; i++){
-				if(big_endian_arr[i] != sha256_test[i]){
-					sha_good = 0;
-					break;
-				}
-			}
-			if(sha_good){
-				k_conv = htobe64(k);
-
-				for(j = 0; i < SHA_LEN; i++){
-					cache_sha[cache_counter][j] = big_endian_arr[j];
-				}
-				*cache_value[cache_counter] = k_conv;
-				cache_counter = (cache_counter == CACHE_SIZE-1) ? 0 : cache_counter + 1;
-
-				memcpy(response_arr, &k_conv, sizeof(k_conv));
+		for(i = 0; i < 32; i++){
+			if(big_endian_arr[i] != sha256_test[i]){
+				sha_good = 0;
 				break;
 			}
+		}
+		if(sha_good){
+			k_conv = htobe64(k);
+			memcpy(response_arr, &k_conv, sizeof(k_conv));
+			break;
 		}
 	}
 }
@@ -144,8 +80,6 @@ int main(int argc, char *argv[])
 	server_addr.sin_port = htons(PORT);
 	server_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
 
-	int listen_sock;
-	int listen_sock;
 	int listen_sock;
 	// TCP Socket Creation
 	if ((listen_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
