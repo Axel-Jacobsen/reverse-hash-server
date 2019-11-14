@@ -38,7 +38,7 @@ int cache_hash(const uint8_t* hash_arr)
 		return PRIME*hash%CACHE_SIZE;
 }
 
-void cache_insert(int key, const uint64_t* buffer)
+void cache_insert(int key, uint64_t* buffer)
 {
     node* newptr = malloc(sizeof(node));
     if (newptr == NULL)
@@ -59,7 +59,7 @@ void cache_insert(int key, const uint64_t* buffer)
     else
     {
         node* predptr = cache[key];
-        while (true)
+        while (1)
         {
             // insert at tail
             if (predptr->next == NULL)
@@ -85,10 +85,11 @@ void cache_insert(int key, const uint64_t* buffer)
   node* predptr = cache[key];
   uint8_t sha256_test[SHA_LEN] = {0};
   uint8_t sha_good = 1;
+	int i;
 
-  while (true) {
+  while (1) {
     sha_good = 1;
-    sha256(predptr->value, sha256_test);
+    sha256(&predptr->value, sha256_test);
 
     for(i = 0; i < SHA_LEN; i++){
 			if(client[i] != sha256_test[i]){
@@ -107,7 +108,7 @@ void cache_insert(int key, const uint64_t* buffer)
   }
   if(sha_good){
     printf("Found in cache : %d\n", key);
-    return predptr->value;
+    return (int8_t) predptr->value;
   }
   else {
     printf("Not found in cache : %d\n", key);
@@ -127,44 +128,46 @@ void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 // *big_endian_arr is an array of bytes, response_arr is a pointer to an array of the same size
 void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 {
-  int8_t cache_result = cache_hash(big_endian_arr);
-  if(!(cache_result == -1)){
-    k_conv = htobe64((uint64_t) cache_result);
-    memcpy(response_arr, &k_conv, sizeof(k_conv));
-    break;
-  }
-	uint8_t i;
-	uint64_t start = 0;
-	for (i = 32; i < 40; i++)
-	{
-		start = start | (((uint64_t)big_endian_arr[i]) << (8 * (39 - i)));
-	}
+  int8_t cache_result = cache_search(big_endian_arr);
+  if(cache_result == -1){
+		uint8_t i;
+		uint64_t start = 0;
+		for (i = 32; i < 40; i++)
+		{
+			start = start | (((uint64_t)big_endian_arr[i]) << (8 * (39 - i)));
+		}
 
-	uint64_t end = 0;
-	for (i = 40; i < 48; i++)
-	{
-		end = end | (((uint64_t)big_endian_arr[i]) << (8 * (47 - i)));
-	}
-	uint8_t sha_good = 1;
-	uint8_t sha256_test[SHA_LEN] = {0};
-	uint64_t k;
-	uint64_t k_conv;
+		uint64_t end = 0;
+		for (i = 40; i < 48; i++)
+		{
+			end = end | (((uint64_t)big_endian_arr[i]) << (8 * (47 - i)));
+		}
+		uint8_t sha_good = 1;
+		uint8_t sha256_test[SHA_LEN] = {0};
+		uint64_t k;
+		uint64_t k_conv;
 
-	for(k = start; k < end; k++){
-		sha_good = 1;
-		sha256(&k, sha256_test);
+		for(k = start; k < end; k++){
+			sha_good = 1;
+			sha256(&k, sha256_test);
 
-		for(i = 0; i < 32; i++){
-			if(big_endian_arr[i] != sha256_test[i]){
-				sha_good = 0;
+			for(i = 0; i < 32; i++){
+				if(big_endian_arr[i] != sha256_test[i]){
+					sha_good = 0;
+					break;
+				}
+			}
+			if(sha_good){
+				k_conv = htobe64(k);
+				memcpy(response_arr, &k_conv, sizeof(k_conv));
+				cache_insert(cache_hash(big_endian_arr), k);
 				break;
 			}
 		}
-		if(sha_good){
-			k_conv = htobe64(k);
-			memcpy(response_arr, &k_conv, sizeof(k_conv));
-			break;
-		}
+	}
+	else{
+		uint64_t k_cache = htobe64((uint64_t) cache_result);
+    memcpy(response_arr, &k_cache, sizeof(k_cache));
 	}
 }
 
