@@ -21,7 +21,10 @@
 struct __attribute__((packed)) hashBuffer {
 	uint64_t start;
 	uint64_t end;
-	uint8_t hash[SHA_LEN];
+	uint64_t first_num;
+	uint64_t second_num;
+	uint64_t third_num;
+	uint64_t fourth_num;
 	uint8_t priority : 4;	
 }hash;
 
@@ -48,15 +51,46 @@ void initStruct(uint8_t *buffer)
 	{
 		end = end | (((uint64_t)buffer[i]) << (8 * (47 - i)));
 	}
+
+	uint64_t first_num = 0;
+	for (i = 0; i < 8; i++)
+	{
+		first_num = first_num | (((uint64_t)buffer[i]) << (8 * (7 - i)));
+	}
 	
+
+	uint64_t second_num = 0;
+	for (i = 8; i < 16; i++)
+	{
+		second_num = second_num | (((uint64_t)buffer[i]) << (8 * (15 - i)));
+	}
+
+
+	uint64_t third_num = 0;
+	for (i = 16; i < 24; i++)
+	{
+		third_num = third_num | (((uint64_t)buffer[i]) << (8 * (23 - i)));
+	}
+
+
+	uint64_t fourth_num = 0;
+	for (i = 24; i < 32; i++)
+	{
+		fourth_num = fourth_num | (((uint64_t)buffer[i]) << (8 * (31 - i)));
+	}
+		
 	//printf("priority: %d\n", (int)buffer[48]);	
 	//printf("hashing: %lld\n", hashing);
 	
 	hash.start = start;
 	hash.end = end; 
+	hash.first_num = first_num;
+	hash.second_num = second_num;
+	hash.third_num = third_num;
+	hash.fourth_num = fourth_num;
 	hash.priority = buffer[48];
 	//printf("%d\n", (int)hash.priority);
-	memcpy((void *)hash.hash, buffer, SHA_LEN);
+	//memcpy((void *)hash.hash, buffer, SHA_LEN);
 }
 
 // *big_endian_arr is an array of bytes, response_arr is a pointer to an array of the same size
@@ -74,49 +108,44 @@ void rev_hash(uint8_t *response_arr)
 		
 		uint8_t i;
 		uint64_t first_num_test = 0;
-		uint64_t first_num = 0;
 		for (i = 0; i < 8; i++)
 		{
-			first_num_test = first_num_test | (((uint64_t)sha256_test[i]) << (8 * (7 - i)));
-			first_num = first_num_test | (((uint64_t)hash.hash[i]) << (8 * (7 - i)));
+			first_num_test = first_num_test | (((uint64_t)sha256_test[i]) << (8 * (15 - i)));
 		}
 	
 
 		uint64_t second_num_test = 0;
-		uint64_t second_num = 0;
 		for (i = 8; i < 16; i++)
 		{
 			second_num_test = second_num_test | (((uint64_t)sha256_test[i]) << (8 * (15 - i)));
-			second_num = second_num | (((uint64_t)hash.hash[i]) << (8 * (15 - i)));
 		}
 
 
 		uint64_t third_num_test = 0;
-		uint64_t third_num = 0;
 		for (i = 16; i < 24; i++)
 		{
 			third_num_test = third_num_test | (((uint64_t)sha256_test[i]) << (8 * (23 - i)));
-			third_num = third_num | (((uint64_t)hash.hash[i]) << (8 * (23 - i)));
 		}
 
 
 		uint64_t fourth_num_test = 0;
-		uint64_t fourth_num = 0;
 		for (i = 24; i < 32; i++)
 		{
 			fourth_num_test = fourth_num_test | (((uint64_t)sha256_test[i]) << (8 * (31 - i)));
-			fourth_num = fourth_num | (((uint64_t)hash.hash[i]) << (8 * (31 - i)));
 		}
-		printf("hash_first: %ld, test_first: %ld\n", first_num, first_num_test);
-		printf("hash_second: %ld, test_second: %ld\n", second_num, second_num_test);
-		printf("hash_third: %ld, test_third: %ld\n", third_num, third_num_test);
-		printf("hash_fourth: %ld, test_fourth: %ld\n", fourth_num, fourth_num_test);	
-		printf("--------------------------------------\n");	
 		
-		if(first_num != first_num_test && second_num != second_num_test && third_num != third_num_test && fourth_num != fourth_num_test){
+	
+		printf("hash_first: %ld, test_first: %ld\n", hash.first_num, first_num_test);
+		printf("hash_second: %ld, test_second: %ld\n", hash.second_num, second_num_test);
+		printf("hash_third: %ld, test_third: %ld\n", hash.third_num, third_num_test);
+		printf("hash_fourth: %ld, test_fourth: %ld\n", hash.fourth_num, fourth_num_test);	
+		printf("--------------------------------------\n");	
+		if(hash.first_num != first_num_test && hash.second_num != second_num_test && hash.third_num != third_num_test && hash.fourth_num != fourth_num_test){
 			sha_good = 0;
 			break;
 		}
+	
+		
 		
 		
 		
