@@ -28,16 +28,16 @@ typedef struct FIFO_CircArr{
 	int size;
 	int* arr;
 }FIFO_CircArr;
-pthread_t startfunction;
-pthread_t endfunction;
-
 typedef struct Thread_input{
         uint64_t start;
         uint64_t end;
         int sock;
         uint8_t *big_endian_arr;
         uint8_t response_arr[RESPONSE_LEN];
+	pthread_t startfunctionID;
+	pthread_t endfunctionID;
 }Thread_input;
+
 FIFO_CircArr queue_global;
 sem_t mutexD, empty, full;
 
@@ -59,7 +59,7 @@ void* thread_start_function(void* args){
         uint64_t k;
         uint64_t k_conv;
         uint64_t diff = ((thread_inputs->end) - (thread_inputs->start))/2;
-         for(k = thread_inputs->start; k < (thread_inputs->end)-diff; k++){
+         for(k = thread_inputs->start; k < (thread_inputs->end); k++){
                 pthread_testcancel();
                 sha_good = 1;
                 sha256(&k, sha256_test);
@@ -71,7 +71,7 @@ void* thread_start_function(void* args){
                         }
                 }
                 if(sha_good){
-                        pthread_cancel(endfunction);
+                        //pthread_cancel(thread_inputs->endfunctionID);
                         //printf("START FOUND\n");
                         k_conv = htobe64(k);
                         memcpy(thread_inputs->response_arr, &k_conv, sizeof(k_conv));
@@ -103,7 +103,7 @@ void* thread_end_function(void* args){
                         }
                 }
                 if(sha_good){
-                        pthread_cancel(startfunction);
+                        pthread_cancel(thread_inputs->startfunctionID);
                         //printf("END FOUND\n");
                         k_conv = htobe64(k);
                         memcpy(thread_inputs->response_arr, &k_conv, sizeof(k_conv));
@@ -194,12 +194,14 @@ void rev_hash(uint8_t *big_endian_arr, int sock)
         threadinput->start = start;
         threadinput->end = end;
         threadinput->big_endian_arr = big_endian_arr;
-        pthread_create(&startfunction, NULL, thread_start_function, (void*)(threadinput));
-        pthread_create(&endfunction, NULL, thread_end_function, (void*)(threadinput));
-        pthread_join(startfunction, NULL);
+        pthread_create(&threadinput->startfunctionID, NULL, thread_start_function, (void*)(threadinput));
+        //pthread_create(&threadinput->endfunctionID, NULL, thread_end_function, (void*)(threadinput));
+        pthread_join(threadinput->startfunctionID, NULL);
         //printf("Start returned\n");
-        pthread_join(endfunction, NULL);
-        //printf("Both threads returned\n");
+        //pthread_join(threadinput->endfunctionID, NULL);
+        free(threadinput);
+	//printf("Both threads returned\n");
+	//printf("Stopped working on sock = %d\n",sock);
 
 }
 
@@ -283,11 +285,11 @@ int main(int argc, char *argv[])
 	sem_init(&full, 0, SEM_FULL_INITIAL);
 	//Create threads
 	int i;
+	
 	for(i = 0; i < MAX_THREADS; i++){
 		pthread_create(&rht, NULL, request_handler_thread, NULL);
 	}
-	sleep(1); //Give threads a chance to start
-
+	
 	printf("\nServing on %s:%d\n", inet_ntoa(server_addr.sin_addr), PORT);
 	int sock;
 	queue_global.size = QUEUE_SIZE;
