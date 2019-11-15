@@ -58,6 +58,7 @@ void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 void* popup_sha_cracker(void* args){
 	Thread_input* thread_inputs = (Thread_input*)args;
 	uint8_t sha256_test[SHA_LEN] = {0};
+	uint8_t sha_good;
 	uint64_t k;
 	uint64_t k_conv;
 	uint8_t response[RESPONSE_LEN];
@@ -66,9 +67,21 @@ void* popup_sha_cracker(void* args){
 		if(flags[thread_inputs->worker_num].f == 1){			
 			return NULL;
 		}
+
+		int i = 0;
+		sha_good = 1;
 		sha256(&k, sha256_test);
 
-		if(memcmp(thread_inputs->big_endian_arr, sha256_test, SHA_LEN) == 0)
+		for (i = 0; i < SHA_LEN; i++)
+		{
+			if (thread_inputs->big_endian_arr[i] != sha256_test[i])
+			{
+				sha_good = 0;
+				break;
+			}
+		}
+
+		if(sha_good)
 		{
 			flags[thread_inputs->worker_num].f = 1;
 			k_conv = htobe64(k);
