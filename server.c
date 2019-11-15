@@ -28,6 +28,7 @@ typedef struct FIFO_CircArr{
 	int size;
 	int* arr;
 }FIFO_CircArr;
+
 typedef struct Thread_input{
         uint64_t start;
         uint64_t end;
@@ -36,10 +37,16 @@ typedef struct Thread_input{
         uint8_t response_arr[RESPONSE_LEN];
 	pthread_t startfunctionID;
 	pthread_t endfunctionID;
+	int worker_num;
 }Thread_input;
 
 FIFO_CircArr queue_global;
 sem_t mutexD, empty, full;
+
+typedef struct Flag{
+int f;
+}Flag;
+Flag flags[MAX_THREADS];
 
 void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 {
@@ -52,15 +59,19 @@ void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 
 void* thread_start_function(void* args){
         //pthreadcanceltype is the only way to make sure it stops properly for now
-        pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED,NULL);
+  //      pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED,NULL);
         Thread_input* thread_inputs = (Thread_input*)args;
         uint8_t sha_good = 1;
         uint8_t sha256_test[SHA_LEN] = {0};
         uint64_t k;
         uint64_t k_conv;
         uint64_t diff = ((thread_inputs->end) - (thread_inputs->start))/2;
-         for(k = thread_inputs->start; k < (thread_inputs->end); k++){
-                pthread_testcancel();
+         for(k = thread_inputs->start; k < (thread_inputs->end - diff); k++){
+//                pthread_testcancel();
+		if(flags[thread_inputs->worker_num].f == 1){
+			//printf("Start has stopped!\n");			
+			return;
+		}
                 sha_good = 1;
                 sha256(&k, sha256_test);
                 int i;
@@ -71,8 +82,10 @@ void* thread_start_function(void* args){
                         }
                 }
                 if(sha_good){
+			flags[thread_inputs->worker_num].f = 1;
                         //pthread_cancel(thread_inputs->endfunctionID);
                         //printf("START FOUND\n");
+			//printf("Hash found start!\n");
                         k_conv = htobe64(k);
                         memcpy(thread_inputs->response_arr, &k_conv, sizeof(k_conv));
                         send(thread_inputs->sock, thread_inputs->response_arr, RESPONSE_LEN, 0);
@@ -84,7 +97,7 @@ void* thread_start_function(void* args){
 
 
 void* thread_end_function(void* args){
-        pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED,NULL);
+        //pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED,NULL);
         Thread_input* thread_inputs = (Thread_input*)args;
         uint8_t sha_good = 1;
         uint8_t sha256_test[SHA_LEN] = {0};
@@ -92,7 +105,12 @@ void* thread_end_function(void* args){
         uint64_t k_conv;
         uint64_t diff = ((thread_inputs->end) - (thread_inputs->start))/2;
          for(k = (thread_inputs->end)-diff; k < thread_inputs->end; k++){
-                pthread_testcancel();
+		if(flags[thread_inputs->worker_num].f == 1){
+			//printf("End has stopped!\n");
+			return;
+                }
+                
+//pthread_testcancel();
                 sha_good = 1;
                 sha256(&k, sha256_test);
                 int i;
@@ -103,8 +121,10 @@ void* thread_end_function(void* args){
                         }
                 }
                 if(sha_good){
-                        pthread_cancel(thread_inputs->startfunctionID);
+                        //pthread_cancel(thread_inputs->startfunctionID);
                         //printf("END FOUND\n");
+			flags[thread_inputs->worker_num].f = 1;
+			//printf("Hash found end!\n");
                         k_conv = htobe64(k);
                         memcpy(thread_inputs->response_arr, &k_conv, sizeof(k_conv));
                         send(thread_inputs->sock,thread_inputs->response_arr, RESPONSE_LEN, 0);
@@ -171,7 +191,7 @@ int deQueue()
 }
 
 
-void rev_hash(uint8_t *big_endian_arr, int sock)
+void rev_hash(uint8_t *big_endian_arr, int sock, int main_thread_num)
 {
         uint64_t start = 0;
         int i = 0;
@@ -194,11 +214,12 @@ void rev_hash(uint8_t *big_endian_arr, int sock)
         threadinput->start = start;
         threadinput->end = end;
         threadinput->big_endian_arr = big_endian_arr;
+	threadinput->worker_num = main_thread_num;
         pthread_create(&threadinput->startfunctionID, NULL, thread_start_function, (void*)(threadinput));
-        //pthread_create(&threadinput->endfunctionID, NULL, thread_end_function, (void*)(threadinput));
+        pthread_create(&threadinput->endfunctionID, NULL, thread_end_function, (void*)(threadinput));
         pthread_join(threadinput->startfunctionID, NULL);
         //printf("Start returned\n");
-        //pthread_join(threadinput->endfunctionID, NULL);
+        pthread_join(threadinput->endfunctionID, NULL);
         free(threadinput);
 	//printf("Both threads returned\n");
 	//printf("Stopped working on sock = %d\n",sock);
@@ -207,6 +228,7 @@ void rev_hash(uint8_t *big_endian_arr, int sock)
 
 
 void* request_handler_thread(void* args){
+	int*  main_thread_num = (int*) args;
         uint8_t buffer[MESSAGE_LEN] = {0};
         uint8_t response[RESPONSE_LEN] = {0};
 	
@@ -226,10 +248,11 @@ void* request_handler_thread(void* args){
                 	pbuffer += n;
 	                maxlen -= n;
         	        len += n;
-                	rev_hash(buffer, sock);
+                	rev_hash(buffer, sock, *main_thread_num);
 	                //send(sock, response, RESPONSE_LEN, 0);
         	}
 	        close(sock);
+		flags[*main_thread_num].f = 0;
 	}
 }
 
@@ -285,9 +308,15 @@ int main(int argc, char *argv[])
 	sem_init(&full, 0, SEM_FULL_INITIAL);
 	//Create threads
 	int i;
-	
+	for(i = 0; i < MAX_THREADS;i++){
+		flags[i].f = 0;
+	}
+	int main_thread_num[MAX_THREADS];
 	for(i = 0; i < MAX_THREADS; i++){
-		pthread_create(&rht, NULL, request_handler_thread, NULL);
+		main_thread_num[i] = i;
+	}
+	for(i = 0; i < MAX_THREADS; i++){
+		pthread_create(&rht, NULL, request_handler_thread, (void*) &main_thread_num[i]);
 	}
 	
 	printf("\nServing on %s:%d\n", inet_ntoa(server_addr.sin_addr), PORT);
