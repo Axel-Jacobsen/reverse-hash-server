@@ -10,20 +10,12 @@
 
 typedef struct node
 {
-        uint8_t response[RESPONSE_LEN];
+        uint64_t response;
         uint8_t hash[MESSAGE_LEN];
         struct node *next;
 } node;
 
 node *cache[CACHE_SIZE] = {NULL};
-
-void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
-{
-        SHA256_CTX sha256;
-        SHA256_Init(&sha256);
-        SHA256_Update(&sha256, v, sizeof(v));
-        SHA256_Final(out_buff, &sha256);
-}
 
 int cache_hash(uint8_t *hash_arr)
 {
@@ -36,7 +28,7 @@ int cache_hash(uint8_t *hash_arr)
         return PRIME * hash % CACHE_SIZE;
 }
 
-void cache_insert(int key, uint8_t hash[MESSAGE_LEN], uint8_t response[RESPONSE_LEN])
+void cache_insert(int key, uint8_t hash[MESSAGE_LEN], uint64_t response)
 {
         struct node *newNode = malloc(sizeof(node));
         if (newNode == NULL)
@@ -45,7 +37,8 @@ void cache_insert(int key, uint8_t hash[MESSAGE_LEN], uint8_t response[RESPONSE_
         }
 
         memcpy(newNode->hash, hash, MESSAGE_LEN);
-        memcpy(newNode->response, response, RESPONSE_LEN);
+	newNode->response = response;
+        //memcpy(newNode->response, response, RESPONSE_LEN);
         newNode->next = NULL;
 
         if (cache[key] == NULL)
@@ -67,11 +60,11 @@ void cache_insert(int key, uint8_t hash[MESSAGE_LEN], uint8_t response[RESPONSE_
         }
 }
 
-uint8_t *cache_search(int key, uint8_t *client)
+int64_t cache_search(int key, uint8_t *client)
 {
         if (cache[key] == NULL)
         {
-                return NULL;
+                return -1;
         }
 
         node *findNode = cache[key];
@@ -102,7 +95,7 @@ uint8_t *cache_search(int key, uint8_t *client)
         if (sha_good)
                 return findNode->response;
         else
-                return NULL;
+                return -1;
 }
 
 #endif
