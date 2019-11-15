@@ -57,17 +57,14 @@ void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 
 void* popup_sha_cracker(void* args){
 	Thread_input* thread_inputs = (Thread_input*)args;
-	uint8_t sha_good = 1;
 	uint8_t sha256_test[SHA_LEN] = {0};
 	uint64_t k;
 	uint64_t k_conv;
 	uint8_t response[RESPONSE_LEN];
-	int sizeboi= sizeof(Thread_input);
-	int sizeuint = sizeof(uint8_t*);
 
 	for(k = thread_inputs->start; k < (thread_inputs->end); k++){
 		if(flags[thread_inputs->worker_num].f == 1){			
-			return;
+			return NULL;
 		}
 		sha256(&k, sha256_test);
 
@@ -87,9 +84,10 @@ void* popup_sha_cracker(void* args){
 				sem_post(&cache_mutex);
 			}
 
-			return;
+			return NULL;
 		}
 	}
+	return NULL;
 }
 
 
