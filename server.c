@@ -191,6 +191,7 @@ int main(int argc, char *argv[])
 	struct Queue prioList[NUMBER_OF_PRIOS];
 	int i;
 	for (i=0; i<NUMBER_OF_PRIOS; i++) prioList[i] = *createQueue();
+	int queueCounter = 0;
 
 	// Set up timeout feature
 	fd_set rset;
@@ -227,6 +228,7 @@ int main(int argc, char *argv[])
 			initReq(&req, buffer, sock);
 			enQueue(prioList, req);
 			listFilled++;
+			queueCounter++;
 
 		}
 		}
@@ -234,11 +236,14 @@ int main(int argc, char *argv[])
 
 
 		if (listFilled > 9){
+			if (queueCounter > 0){
 			struct QNode* highestPrio = deQueue(prioList);
+			queueCounter--;
 			rev_hash(highestPrio->key.package, response);//rev_hash(buffer, response);
 			send(highestPrio->key.socket, response, RESPONSE_LEN, 0);	//send(sock, response, RESPONSE_LEN, 0);
 			close(highestPrio->key.socket);
 			free(highestPrio);
+			}
 		}
 
 
