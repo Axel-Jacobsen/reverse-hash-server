@@ -3,7 +3,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <sys/time.h>
 #include <sys/types.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -11,7 +13,9 @@
 #include <inttypes.h>
 #include <pthread.h>
 #include <semaphore.h>
+
 #include "messages.h"
+#include "priority.h"
 
 #define SERVER_IP "192.168.101.10"
 #define MESSAGE_LEN 49
@@ -163,7 +167,7 @@ void* request_handler_thread(void* args){
 
 
 int main(int argc, char *argv[])
-{	
+{
 	int PORT;
 	if (argc > 1)
 		PORT = atoi(argv[1]);
@@ -239,8 +243,6 @@ int main(int argc, char *argv[])
 		sem_post(&full);
 
         }
-		
 	close(listen_sock);
 	return 0;
 }
-
