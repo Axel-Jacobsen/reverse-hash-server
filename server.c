@@ -16,6 +16,7 @@
 
 #include "messages.h"
 #include "priority.h"
+#include "caching.h"
 
 #define SERVER_IP "192.168.101.10"
 #define MESSAGE_LEN 49
@@ -32,14 +33,6 @@ struct Queue queue_global[NUMBER_OF_PRIOS];
 
 sem_t mutexD, empty, full;
 
-
-void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
-{
-	SHA256_CTX sha256;
-	SHA256_Init(&sha256);
-	SHA256_Update(&sha256, v, sizeof(v));
-	SHA256_Final(out_buff, &sha256);
-}
 
 void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 {
@@ -95,6 +88,10 @@ void* request_handler_thread(void* args){
 		rev_hash(qnode->key->package, response);
 		send(qnode->key->sock, response, RESPONSE_LEN, 0);
 	        close(qnode->key->sock);
+
+		int key = cache_hash(qnode->key->package);
+		cache_insert(key, qnode->key->package, response);
+
 		free(qnode->key);
 		free(qnode);
 	}
@@ -163,14 +160,13 @@ int main(int argc, char *argv[])
 
 	// Init Queue
 	// 
-
 	int j;
     	for (j=0; j<NUMBER_OF_PRIOS; j++)
 		queue_global[j] = *createQueue();
 
+
 	while (1)
 	{
-			
 		if ((sock = accept(listen_sock, (struct sockaddr *) &client_addr, &client_address_len)) < 0)
                 {
                         perror("couldn't open a socket to accept data");
@@ -180,18 +176,28 @@ int main(int argc, char *argv[])
 		uint8_t buff[MESSAGE_LEN] = {0};
 		uint8_t *pbuff = buff;
 		struct request* req = (struct request *)malloc(sizeof(struct request));
-		int n;
 
-		if ((n = recv(sock, pbuff, MESSAGE_LEN, 0)) > 0)
+		recv(sock, pbuff, MESSAGE_LEN, 0);
+
+		int key = cache_hash(buff);
+		uint8_t *cache_res = cache_search(key, buff);
+		if (cache_res == NULL)
 		{
 			initReq(req, buff, sock);
-		}
+			sem_wait(&empty);
+			sem_wait(&mutexD);
+			enQueue(queue_global, req); // request packet pointer
+			sem_post(&mutexD);
+			sem_post(&full);
 
-		sem_wait(&empty);
-		sem_wait(&mutexD);
-		enQueue(queue_global, req); // request packet pointer
-		sem_post(&mutexD);
-		sem_post(&full);
+		}
+		else
+		{
+			printf("USING CACHE\n");
+			uint8_t response_arr[RESPONSE_LEN] = {0};
+                        memcpy(response_arr, cache_res, RESPONSE_LEN);
+			send(sock, response_arr, RESPONSE_LEN, 0);
+		}
 
         }
 	close(listen_sock);
