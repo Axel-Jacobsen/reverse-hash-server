@@ -18,9 +18,9 @@
 #define SHA_LEN 32
 #define RESPONSE_LEN 8
 #define MAX_THREADS 4
-#define QUEUE_SIZE 100
+#define QUEUE_SIZE 1000
 #define SEM_FULL_INITIAL 0
-#define SEM_EMPTY_INITIAL 100
+#define SEM_EMPTY_INITIAL 1000
 #define MUTEX_INITIAL 1
 #define CHILDTHREADS 4
 
@@ -171,12 +171,11 @@ void rev_hash(uint8_t *big_endian_arr, int sock, int main_thread_num)
         }
 
 	uint8_t pri = big_endian_arr[48];
-	if (pri == 3){
-		pri+=1;
+	if (pri >= 3){
+		pri = 4;
 	}
 	uint64_t diff = (end - start)/pri;
 	Thread_input* thread_input_arr = malloc(pri * sizeof(Thread_input));
-	
 
 	for (i = 0; i < pri; i++)
 	{
@@ -195,20 +194,27 @@ void rev_hash(uint8_t *big_endian_arr, int sock, int main_thread_num)
 	}
 	uint64_t rest = diff % pri;
 	thread_input_arr[pri-1].end += rest;
-	
+	pthread_t* pthread_ids = malloc(pri * sizeof(pthread_t));
 	for (i=0; i < pri; i++)
 	{
 		//printf("Index: %d\n",i);
 		thread_input_arr[i].worker_num = main_thread_num;
 		
-		pthread_create(&child_thread, NULL, thread_start_function, (void*)(&(thread_input_arr[i])));
+		pthread_create(&(pthread_ids[i]), NULL, thread_start_function, (void*)(&(thread_input_arr[i])));
 	
 	}
-        //pthread_join(threadinput->startfunctionID, NULL);
+
+	for(i = 0; i < pri; i++)
+	{
+		pthread_join(pthread_ids[i], NULL);
+		//printf("Join returned! Number: %"PRIu64"\n", i);
+	}
+	//        pthread_join(threadinput->startfunctionID, NULL);
         //printf("Start returned\n");
         //pthread_join(threadinput->endfunctionID, NULL);
-	wait(10);
+	//wait(10);
         free(thread_input_arr);
+	free(pthread_ids);
 	//printf("Both threads returned\n");
 	//printf("Stopped working on sock = %d\n",sock);
 
