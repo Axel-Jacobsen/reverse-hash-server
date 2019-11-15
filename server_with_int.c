@@ -110,7 +110,7 @@ void rev_hash(uint8_t *response_arr)
 		uint64_t first_num_test = 0;
 		for (i = 0; i < 8; i++)
 		{
-			first_num_test = first_num_test | (((uint64_t)sha256_test[i]) << (8 * (15 - i)));
+			first_num_test = first_num_test | (((uint64_t)sha256_test[i]) << (8 * (7 - i)));
 		}
 	
 
@@ -133,16 +133,14 @@ void rev_hash(uint8_t *response_arr)
 		{
 			fourth_num_test = fourth_num_test | (((uint64_t)sha256_test[i]) << (8 * (31 - i)));
 		}
-		
 	
-		printf("hash_first: %ld, test_first: %ld\n", hash.first_num, first_num_test);
-		printf("hash_second: %ld, test_second: %ld\n", hash.second_num, second_num_test);
-		printf("hash_third: %ld, test_third: %ld\n", hash.third_num, third_num_test);
-		printf("hash_fourth: %ld, test_fourth: %ld\n", hash.fourth_num, fourth_num_test);	
-		printf("--------------------------------------\n");	
+		//printf("hash_first: %ld, test_first: %ld\n", hash.first_num, first_num_test);
+		//printf("hash_second: %ld, test_second: %ld\n", hash.second_num, second_num_test);
+		//printf("hash_third: %ld, test_third: %ld\n", hash.third_num, third_num_test);
+		//printf("hash_fourth: %ld, test_fourth: %ld\n", hash.fourth_num, fourth_num_test);	
+		//printf("-------------------------------------------------------------------------------\n");	
 		if(hash.first_num != first_num_test && hash.second_num != second_num_test && hash.third_num != third_num_test && hash.fourth_num != fourth_num_test){
 			sha_good = 0;
-			break;
 		}
 	
 		
