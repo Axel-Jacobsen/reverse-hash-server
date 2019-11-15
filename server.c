@@ -59,6 +59,7 @@ void cache_print(){
 	}
     }
     printf("\n\n");
+    free(printptr);
 }
 
 int cache_hash(uint8_t* hash_arr)
@@ -67,6 +68,7 @@ int cache_hash(uint8_t* hash_arr)
 		for(i = 0; i < SHA_LEN; i++){
 			hash += hash_arr[i];
 		}
+		printf("%d",hash);
 		return PRIME*hash%CACHE_SIZE;
 }
 
@@ -86,7 +88,7 @@ void cache_insert(int key, uint64_t buffer)
     // check for empty list
     if (cache[key] == NULL)
     {
-	printf("List was empty - it is inserted\n");
+	printf("List was empty - it is inserted in %d\n", key);
         cache[key] = newptr;
 	printf("As this: %ld\n\n", cache[key]->value);
     }
@@ -112,10 +114,10 @@ void cache_insert(int key, uint64_t buffer)
     }
 }
 
- int64_t cache_search(uint8_t* client){
+ int64_t cache_search(int key, uint8_t* client){
     //cache_print();
-    int key = cache_hash(client);
-    cache_print();
+    //int key = cache_hash(client);
+    //cache_print();
     printf("Key: %d\n", key);
     
 
@@ -163,7 +165,8 @@ void cache_insert(int key, uint64_t buffer)
 // *big_endian_arr is an array of bytes, response_arr is a pointer to an array of the same size
 void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 {
-  int8_t cache_result = cache_search(big_endian_arr);
+  int key = cache_hash(big_endian_arr);
+  int8_t cache_result = cache_search(key, big_endian_arr);
   if(cache_result == -1){
 		uint8_t i;
 		uint64_t start = 0;
@@ -196,7 +199,7 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 				k_conv = htobe64(k);
 				memcpy(response_arr, &k_conv, sizeof(k_conv));
 				printf("Starting insert of %ld\n", k);
-				cache_insert(cache_hash(big_endian_arr), k);
+				cache_insert(key, k);
 				if(cache[1] == NULL){
 				    printf("Oh shit, still NULL\n");
 				}
