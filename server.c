@@ -22,7 +22,7 @@ struct __attribute__((packed)) hashBuffer {
 	uint64_t start;
 	uint64_t end;
 	uint8_t hash[SHA_LEN];
-	uint8_t priority;	
+	uint8_t priority : 4;	
 }hash;
 
 
