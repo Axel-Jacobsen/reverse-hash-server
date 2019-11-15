@@ -23,9 +23,8 @@
 #define SHA_LEN 32
 #define RESPONSE_LEN 8
 #define MAX_THREADS 4
-#define QUEUE_SIZE 100
 #define SEM_FULL_INITIAL 0
-#define SEM_EMPTY_INITIAL 100
+#define SEM_EMPTY_INITIAL 1000
 #define MUTEX_INITIAL 1
 
 
@@ -51,21 +50,14 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
                 end = end | (((uint64_t)big_endian_arr[i]) << (8 * (47 - i)));
         }
 
-        uint8_t sha_good = 1;
         uint8_t sha256_test[SHA_LEN] = {0};
         uint64_t k;
         uint64_t k_conv;
 	
         for(k = start; k < end; k++){
-                sha_good = 1;
                 sha256(&k, sha256_test);
-                for(i = 0; i < 32; i++){
-                        if(big_endian_arr[i] != sha256_test[i]){
-                                sha_good = 0;
-                                break;
-                        }
-                }
-                if(sha_good){
+		if(memcmp(big_endian_arr, sha256_test, SHA_LEN) == 0)
+		{
                         k_conv = htobe64(k);
                         memcpy(response_arr, &k_conv, sizeof(k_conv));
                         break;
@@ -86,12 +78,22 @@ void* request_handler_thread(void* args){
 		sem_post(&mutexD);
 		sem_post(&empty);
 
-		rev_hash(qnode->key->hash, response);
-		send(qnode->key->sock, response, RESPONSE_LEN, 0);
-	        close(qnode->key->sock);
-
 		int key = cache_hash(qnode->key->hash);
-		cache_insert(key, qnode->key->hash, response, cache);
+		uint8_t *cache_res = cache_search(key, qnode->key->hash, cache);
+
+		if (cache_res == NULL)
+		{
+			rev_hash(qnode->key->hash, response);
+			send(qnode->key->sock, response, RESPONSE_LEN, 0);
+			close(qnode->key->sock);
+			cache_insert(key, qnode->key->hash, response, cache);
+		}
+		else
+		{
+			uint8_t response_arr[RESPONSE_LEN] = {0};
+                        memcpy(response_arr, cache_res, RESPONSE_LEN);
+			send(qnode->key->sock, response_arr, RESPONSE_LEN, 0);
+		}
 
 		free(qnode->key);
 		free(qnode);

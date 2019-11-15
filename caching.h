@@ -73,20 +73,15 @@ uint8_t *cache_search(int key, uint8_t *client, Node* cache[CACHE_SIZE])
 	}
 
 	Node *findNode = cache[key];
-	uint8_t sha_good = 1;
-	int i;
+	uint8_t sha_good;
 
 	while (1)
 	{
 		sha_good = 1;
 
-		for (i = 0; i < SHA_LEN; i++)
+		if (memcmp(client, findNode->hash, SHA_LEN) != 0)
 		{
-			if (client[i] != (findNode->hash)[i])
-			{
-				sha_good = 0;
-				break;
-			}
+			sha_good = 0;
 		}
 
 		if (sha_good || (findNode->next == NULL))
