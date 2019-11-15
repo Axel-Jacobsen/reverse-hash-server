@@ -22,7 +22,7 @@
 #define SEM_FULL_INITIAL 0
 #define SEM_EMPTY_INITIAL 100
 #define MUTEX_INITIAL 1
-#define CHILDTHREADS 2
+#define CHILDTHREADS 4
 
 typedef struct FIFO_CircArr{
 	int rear, front;
@@ -33,11 +33,11 @@ typedef struct FIFO_CircArr{
 pthread_t child_thread;
 
 typedef struct Thread_input{
-        uint64_t* start;
+	int padding;
+	uint64_t start;
         uint64_t end;
-        int sock;
-        uint8_t *big_endian_arr;
-        uint8_t response_arr[RESPONSE_LEN];
+        uint8_t* big_endian_arr;
+	int sock;
 	int worker_num;
 }Thread_input;
 
@@ -66,14 +66,13 @@ void* thread_start_function(void* args){
         uint8_t sha256_test[SHA_LEN] = {0};
         uint64_t k;
         uint64_t k_conv;
-	uint64_t startHolder = *(thread_inputs->start);
-	printf("num: %d\n", thread_inputs->worker_num);
-	printf("start: %"PRIu64"\n", startHolder);
-	printf("end: %"PRIu64"\n", thread_inputs->end);
-         for(k = *(thread_inputs->start); k < (thread_inputs->end); k++){
+	uint8_t response_arr[RESPONSE_LEN];
+	int sizeboi= sizeof(Thread_input);
+	int sizeuint = sizeof(uint8_t*);
+		
+         for(k = thread_inputs->start; k < (thread_inputs->end); k++){
 //                pthread_testcancel();
-		if(flags[thread_inputs->worker_num].f == 1){
-			printf("Start has stopped!\n");			
+		if(flags[thread_inputs->worker_num].f == 1){			
 			return;
 		}
                 sha_good = 1;
@@ -88,11 +87,10 @@ void* thread_start_function(void* args){
                 if(sha_good){
 			flags[thread_inputs->worker_num].f = 1;
                         //pthread_cancel(thread_inputs->endfunctionID);
-                        printf("START FOUND\n");
 			//printf("Hash found start!\n");
                         k_conv = htobe64(k);
-                        memcpy(thread_inputs->response_arr, &k_conv, sizeof(k_conv));
-                        send(thread_inputs->sock, thread_inputs->response_arr, RESPONSE_LEN, 0);
+                        memcpy(response_arr, &k_conv, sizeof(k_conv));
+                        send(thread_inputs->sock, response_arr, RESPONSE_LEN, 0);
                         return;
                 }
         }
@@ -171,35 +169,32 @@ void rev_hash(uint8_t *big_endian_arr, int sock, int main_thread_num)
         {
                 end = end | (((uint64_t)big_endian_arr[i]) << (8 * (47 - i)));
         }
-	
+
 	uint8_t pri = big_endian_arr[48];
-	printf("Prio: %"PRIu8"\n",pri);
-	Thread_input* thread_input_arr = malloc(pri * sizeof(Thread_input)); 	
+	if (pri == 3){
+		pri+=1;
+	}
 	uint64_t diff = (end - start)/pri;
+	Thread_input* thread_input_arr = malloc(pri * sizeof(Thread_input));
+	
+
 	for (i = 0; i < pri; i++)
 	{
 		//printf("Index: %d\n",i);
 		thread_input_arr[i].sock = sock;
-		thread_input_arr[i].start = malloc(sizeof(uint64_t));
 		//printf("Index: %d\n",i);
-		printf("Before start: %"PRIu64"\n",start);
-		*(thread_input_arr[i].start) = start+(diff*i);
-		printf("after start: %"PRIu64"\n",*(thread_input_arr[i].start));
+		
+		thread_input_arr[i].start = start+(diff*i);
+		
 		//printf("Index: %d\n",i);
 		thread_input_arr[i].end = start+(diff*(i+1));
 		//thread_input_arr[i].start = start+(diff*(i+1));
-		printf("After end: %"PRIu64"\n", end);
-
 		//printf("Index: %d\n",i);
 		thread_input_arr[i].big_endian_arr = big_endian_arr; 
 		//printf("Index: %d\n",i);
 	}
 	uint64_t rest = diff % pri;
-	printf("Made it\n");
-	printf("Before end: %"PRIu64"\n", end);
-	printf("Rest is: %"PRIu64"\n", rest);
 	thread_input_arr[pri-1].end += rest;
-	printf("After end: %"PRIu64"\n", end);
 	
 	for (i=0; i < pri; i++)
 	{
