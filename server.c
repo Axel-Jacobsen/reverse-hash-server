@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <stdlib.h>
+#include <caching.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -17,18 +18,6 @@
 #define SHA_LEN 32
 #define RESPONSE_LEN 8
 
-#define CACHE_SIZE 10000
-#define PRIME 7753
-
-typedef struct node
-{
-    uint64_t value;
-    struct node* next;
-}
-node;
-
-node* cache[CACHE_SIZE] = {NULL};
-
 void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 {
 	SHA256_CTX sha256;
@@ -37,90 +26,6 @@ void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 	SHA256_Final(out_buff, &sha256);
 }
 
-int cache_hash(uint8_t* hash_arr)
-{
-    int i, hash;
-		for(i = 0; i < SHA_LEN; i++){
-			hash += hash_arr[i];
-		}
-
-		return PRIME*hash%CACHE_SIZE;
-}
-
-void cache_insert(int key, uint64_t buffer)
-{
-    struct node* newptr = malloc(sizeof(node));
-    if (newptr == NULL)
-    {
-        return;
-    }
-
-    // make a new pointer
-    newptr->value = buffer;
-    newptr->next = NULL;
-
-    // check for empty list
-    if (cache[key] == NULL)
-    {
-        cache[key] = newptr;
-    }
-    // check for insertion at tail
-    else
-    {
-        node* predptr = cache[key];
-        while (1)
-        {
-            // insert at tail
-            if (predptr->next == NULL)
-            {
-                predptr->next = newptr;
-		break;
-            }
-
-            // update pointer
-            predptr = predptr->next;
-        }
-    }
-}
-
- int64_t cache_search(int key, uint8_t* client){
-    if (cache[key] == NULL){
-        return -1;
-  }
-
-  node* predptr = cache[key];
-  uint8_t sha256_test[SHA_LEN] = {0};
-  uint8_t sha_good = 1;
-  int i;
-  uint64_t pred_value;
-
-  while (1) {
-    sha_good = 1;
-    sha256(&predptr->value, sha256_test);
-
-    for(i = 0; i < SHA_LEN; i++){
-			if(client[i] != sha256_test[i]){
-				sha_good = 0;
-        			break;
-			}
-		}
-    if(sha_good){
-      break;
-    }
-    if(predptr->next == NULL){
-      break;
-    }
-
-    predptr = predptr->next;
-  }
-  if(sha_good){
-    return (int64_t) predptr->value;
-  }
-  else {
-    return -1;
-  }
-
-}
 
 // *big_endian_arr is an array of bytes, response_arr is a pointer to an array of the same size
 void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
@@ -158,7 +63,7 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 			if(sha_good){
 				k_conv = htobe64(k);
 				memcpy(response_arr, &k_conv, sizeof(k_conv));
-				cache_insert(key, k);
+				cache_insert(key, k, big_endian_arr);
 			}
 		}
 	}
