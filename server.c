@@ -93,7 +93,6 @@ void* request_handler_thread(void* args){
 		{
 			rev_hash(qnode->key->hash, response);
 			send(qnode->key->sock, response, RESPONSE_LEN, 0);
-			close(qnode->key->sock);
 			cache_insert(key, qnode->key->hash, response, cache);
 		}
 		else
@@ -103,6 +102,7 @@ void* request_handler_thread(void* args){
 			send(qnode->key->sock, response_arr, RESPONSE_LEN, 0);
 		}
 
+		close(qnode->key->sock);
 		free(qnode->key);
 		free(qnode);
 	}
