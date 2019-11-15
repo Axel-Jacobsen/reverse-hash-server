@@ -37,36 +37,13 @@ void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 	SHA256_Final(out_buff, &sha256);
 }
 
-void cache_print(){
-    int i, counter;
-    node* printptr = malloc(sizeof(node));
-    for(i = 0; i < CACHE_SIZE; i++){
-	printf("[%d]: ", i);
-	if(cache[i] == NULL){
-	    printf("NULL\n");
-	}
-	else{
-		printptr = cache[i];
-		while(!(printptr->next->next == NULL)){ 
-			printf("%ld ", printptr->value);
-			++counter;
-			printptr = printptr->next;
-	    	}
-	    	printf("\n");
-	    
-	}
-    }
-    printf("\n\n");
-    free(printptr);
-}
-
 int cache_hash(uint8_t* hash_arr)
 {
     int i, hash;
 		for(i = 0; i < SHA_LEN; i++){
 			hash += hash_arr[i];
 		}
-		printf("%d",hash);
+
 		return PRIME*hash%CACHE_SIZE;
 }
 
@@ -75,7 +52,6 @@ void cache_insert(int key, uint64_t buffer)
     struct node* newptr = malloc(sizeof(node));
     if (newptr == NULL)
     {
-	printf("ptr was NULL\n");
         return;
     }
 
@@ -86,9 +62,7 @@ void cache_insert(int key, uint64_t buffer)
     // check for empty list
     if (cache[key] == NULL)
     {
-	printf("List was empty - it is inserted in %d\n", key);
         cache[key] = newptr;
-	printf("As this: %ld\n\n", cache[key]->value);
     }
     // check for insertion at tail
     else
@@ -99,28 +73,18 @@ void cache_insert(int key, uint64_t buffer)
             // insert at tail
             if (predptr->next == NULL)
             {
-		printf("ptr inserted at end of linked list\n");
                 predptr->next = newptr;
-		printf("As this %ld \n\n", predptr->next->value); 
 		break;
             }
 
             // update pointer
-		printf("Trying next ptr\n");
             predptr = predptr->next;
         }
     }
 }
 
  int64_t cache_search(int key, uint8_t* client){
-    //cache_print();
-    //int key = cache_hash(client);
-    //cache_print();
-    printf("Key: %d\n", key);
-    
-
     if (cache[key] == NULL){
-        printf("Empty bucket : %d\n", key);
         return -1;
   }
 
@@ -137,7 +101,7 @@ void cache_insert(int key, uint64_t buffer)
     for(i = 0; i < SHA_LEN; i++){
 			if(client[i] != sha256_test[i]){
 				sha_good = 0;
-        break;
+        			break;
 			}
 		}
     if(sha_good){
@@ -150,11 +114,9 @@ void cache_insert(int key, uint64_t buffer)
     predptr = predptr->next;
   }
   if(sha_good){
-    printf("Found in cache : %d\n\n", key);
     return (int64_t) predptr->value;
   }
   else {
-    printf("Not found in cache : %d\n\n", key);
     return -1;
   }
 
@@ -196,7 +158,6 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 			if(sha_good){
 				k_conv = htobe64(k);
 				memcpy(response_arr, &k_conv, sizeof(k_conv));
-				printf("Starting insert of %ld\n", k);
 				cache_insert(key, k);
 			}
 		}
