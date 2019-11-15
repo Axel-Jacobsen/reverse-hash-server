@@ -8,14 +8,12 @@
 #define PRIME 7753
 
 
-typedef struct node
+typedef struct Node
 {
 	uint8_t response[RESPONSE_LEN];
 	uint8_t hash[MESSAGE_LEN];
-	struct node *next;
-} node;
-
-node *cache[CACHE_SIZE] = {NULL};
+	struct Node *next;
+} Node;
 
 void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 {
@@ -36,9 +34,9 @@ int cache_hash(uint8_t *hash_arr)
 	return PRIME * hash % CACHE_SIZE;
 }
 
-void cache_insert(int key, uint8_t hash[MESSAGE_LEN], uint8_t response[RESPONSE_LEN])
+void cache_insert(int key, uint8_t hash[MESSAGE_LEN], uint8_t response[RESPONSE_LEN], Node* cache[CACHE_SIZE])
 {
-	struct node *newNode = malloc(sizeof(node));
+	struct Node *newNode = malloc(sizeof(Node));
 	if (newNode == NULL)
 	{
 		return;
@@ -54,7 +52,7 @@ void cache_insert(int key, uint8_t hash[MESSAGE_LEN], uint8_t response[RESPONSE_
 	}
 	else
 	{
-		node *findNode = cache[key];
+		Node *findNode = cache[key];
 		while (1)
 		{
 			if (findNode->next == NULL)
@@ -67,14 +65,14 @@ void cache_insert(int key, uint8_t hash[MESSAGE_LEN], uint8_t response[RESPONSE_
 	}
 }
 
-uint8_t *cache_search(int key, uint8_t *client)
+uint8_t *cache_search(int key, uint8_t *client, Node* cache[CACHE_SIZE])
 {
 	if (cache[key] == NULL)
 	{
 		return NULL;
 	}
 
-	node *findNode = cache[key];
+	Node *findNode = cache[key];
 	uint8_t sha_good = 1;
 	int i;
 

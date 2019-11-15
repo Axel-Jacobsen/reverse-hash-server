@@ -29,7 +29,8 @@
 #define MUTEX_INITIAL 1
 
 
-struct Queue queue_global[NUMBER_OF_PRIOS];
+Queue queue_global[NUMBER_OF_PRIOS];
+Node *cache[CACHE_SIZE] = {NULL};
 
 sem_t mutexD, empty, full;
 
@@ -77,7 +78,7 @@ void* request_handler_thread(void* args){
 	
 	while(1){
 		uint8_t response[RESPONSE_LEN] = {0};
-		struct QNode* qnode;
+		QNode* qnode;
 
 		sem_wait(&full);
 		sem_wait(&mutexD);
@@ -85,12 +86,12 @@ void* request_handler_thread(void* args){
 		sem_post(&mutexD);
 		sem_post(&empty);
 
-		rev_hash(qnode->key->package, response);
+		rev_hash(qnode->key->hash, response);
 		send(qnode->key->sock, response, RESPONSE_LEN, 0);
 	        close(qnode->key->sock);
 
-		int key = cache_hash(qnode->key->package);
-		cache_insert(key, qnode->key->package, response);
+		int key = cache_hash(qnode->key->hash);
+		cache_insert(key, qnode->key->hash, response, cache);
 
 		free(qnode->key);
 		free(qnode);
@@ -175,12 +176,12 @@ int main(int argc, char *argv[])
 
 		uint8_t buff[MESSAGE_LEN] = {0};
 		uint8_t *pbuff = buff;
-		struct request* req = (struct request *)malloc(sizeof(struct request));
+		request* req = (request *)malloc(sizeof(request));
 
 		recv(sock, pbuff, MESSAGE_LEN, 0);
 
 		int key = cache_hash(buff);
-		uint8_t *cache_res = cache_search(key, buff);
+		uint8_t *cache_res = cache_search(key, buff, cache);
 		if (cache_res == NULL)
 		{
 			initReq(req, buff, sock);
@@ -193,7 +194,6 @@ int main(int argc, char *argv[])
 		}
 		else
 		{
-			printf("USING CACHE\n");
 			uint8_t response_arr[RESPONSE_LEN] = {0};
                         memcpy(response_arr, cache_res, RESPONSE_LEN);
 			send(sock, response_arr, RESPONSE_LEN, 0);
