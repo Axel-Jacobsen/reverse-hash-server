@@ -1,6 +1,5 @@
 #include <errno.h>
 #include <stdlib.h>
-#include <caching.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -12,6 +11,7 @@
 #include <inttypes.h>
 
 #include "messages.h"
+#include "caching.h"
 
 #define SERVER_IP "192.168.101.10"
 #define MESSAGE_LEN 49
@@ -63,7 +63,7 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 			if(sha_good){
 				k_conv = htobe64(k);
 				memcpy(response_arr, &k_conv, sizeof(k_conv));
-				cache_insert(key, k, big_endian_arr);
+				cache_insert(key, big_endian_arr, k);
 			}
 		}
 	}
