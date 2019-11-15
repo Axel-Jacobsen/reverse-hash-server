@@ -17,7 +17,7 @@
 #define SHA_LEN 32
 #define RESPONSE_LEN 8
 
-#define CACHE_SIZE 1000
+#define CACHE_SIZE 10
 #define PRIME 7753
 
 typedef struct node
@@ -37,6 +37,30 @@ void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 	SHA256_Final(out_buff, &sha256);
 }
 
+void cache_print(){
+    int i;
+    node* printptr = malloc(sizeof(node));
+    for(i = 0; i < CACHE_SIZE; i++){
+	printf("[%d]: ", i);
+	if(cache[i] == NULL){
+	    printf("NULL\n");
+	}
+	else{
+	    printptr = cache[i];
+	    while(1){
+		printf("%ld ", printptr->value);
+		if(printptr->next == NULL){
+			break;
+		}
+		printptr = printptr->next;
+	    }
+	    printf("\n");
+	    
+	}
+    }
+    printf("\n\n");
+}
+
 int cache_hash(uint8_t* hash_arr)
 {
     int i, hash;
@@ -48,9 +72,10 @@ int cache_hash(uint8_t* hash_arr)
 
 void cache_insert(int key, uint64_t buffer)
 {
-    node* newptr = malloc(sizeof(node));
+    struct node* newptr = malloc(sizeof(node));
     if (newptr == NULL)
     {
+	printf("ptr was NULL\n");
         return;
     }
 
@@ -61,7 +86,9 @@ void cache_insert(int key, uint64_t buffer)
     // check for empty list
     if (cache[key] == NULL)
     {
-       cache[key] = newptr;
+	printf("List was empty - it is inserted\n");
+        cache[key] = newptr;
+	printf("As this: %ld\n\n", cache[key]->value);
     }
     // check for insertion at tail
     else
@@ -72,22 +99,29 @@ void cache_insert(int key, uint64_t buffer)
             // insert at tail
             if (predptr->next == NULL)
             {
+		printf("ptr inserted at end of linked list\n");
                 predptr->next = newptr;
-                break;
+		printf("As this %ld \n\n", predptr->next->value); 
+		break;
             }
 
             // update pointer
+		printf("Trying next ptr\n");
             predptr = predptr->next;
         }
     }
 }
 
  int64_t cache_search(uint8_t* client){
-  int key = hash(client);
+    //cache_print();
+    int key = cache_hash(client);
+    cache_print();
+    printf("Key: %d\n", key);
+    
 
-  if (cache[key] == NULL){
-    printf("Empty bucket : %d\n", key);
-    return -1;
+    if (cache[key] == NULL){
+        printf("Empty bucket : %d\n", key);
+        return -1;
   }
 
   node* predptr = cache[key];
@@ -161,14 +195,21 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 			if(sha_good){
 				k_conv = htobe64(k);
 				memcpy(response_arr, &k_conv, sizeof(k_conv));
+				printf("Starting insert of %ld\n", k);
 				cache_insert(cache_hash(big_endian_arr), k);
-				break;
-			}
+				if(cache[1] == NULL){
+				    printf("Oh shit, still NULL\n");
+				}
+				else{
+				    printf("%ld\n\n", cache[1]->value);
+				}
+				break;	
+				}
 		}
 	}
 	else{
 		uint64_t k_cache = htobe64((uint64_t) cache_result);
-    memcpy(response_arr, &k_cache, sizeof(k_cache));
+    		memcpy(response_arr, &k_cache, sizeof(k_cache));
 	}
 }
 
