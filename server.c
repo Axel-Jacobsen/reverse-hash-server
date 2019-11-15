@@ -3,19 +3,34 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <sys/time.h>
 #include <sys/types.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <string.h>
 #include <inttypes.h>
+#include <pthread.h>
+#include <semaphore.h>
 
 #include "messages.h"
+#include "priority.h"
 
 #define SERVER_IP "192.168.101.10"
 #define MESSAGE_LEN 49
 #define SHA_LEN 32
 #define RESPONSE_LEN 8
+#define MAX_THREADS 4
+#define QUEUE_SIZE 100
+#define SEM_FULL_INITIAL 0
+#define SEM_EMPTY_INITIAL 100
+#define MUTEX_INITIAL 1
+
+
+struct Queue queue_global[NUMBER_OF_PRIOS];
+
+sem_t mutexD, empty, full;
 
 
 void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
@@ -26,47 +41,68 @@ void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 	SHA256_Final(out_buff, &sha256);
 }
 
-// *big_endian_arr is an array of bytes, response_arr is a pointer to an array of the same size
 void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 {
-	uint8_t i;
-	uint64_t start = 0;
-	for (i = 32; i < 40; i++)
-	{
-		start = start | (((uint64_t)big_endian_arr[i]) << (8 * (39 - i)));
-	}
+        uint64_t start = 0;
+        int i = 0;
 
-	uint64_t end = 0;
-	for (i = 40; i < 48; i++)
-	{
-		end = end | (((uint64_t)big_endian_arr[i]) << (8 * (47 - i)));
-	}
+        for (i = 32; i < 40; i++)
+        {
+                start = start | (((uint64_t)big_endian_arr[i]) << (8 * (39 - i)));
+        }
 
-	uint8_t sha_good = 1;
-	uint8_t sha256_test[SHA_LEN] = {0};
-	uint64_t k;
-	uint64_t k_conv;
+        uint64_t end = 0;
+        for (i = 40; i < 48; i++)
+        {
+                end = end | (((uint64_t)big_endian_arr[i]) << (8 * (47 - i)));
+        }
 
-	for(k = start; k < end; k++){
-		sha_good = 1;
-		sha256(&k, sha256_test);
+        uint8_t sha_good = 1;
+        uint8_t sha256_test[SHA_LEN] = {0};
+        uint64_t k;
+        uint64_t k_conv;
+	
+        for(k = start; k < end; k++){
+                sha_good = 1;
+                sha256(&k, sha256_test);
+                for(i = 0; i < 32; i++){
+                        if(big_endian_arr[i] != sha256_test[i]){
+                                sha_good = 0;
+                                break;
+                        }
+                }
+                if(sha_good){
+                        k_conv = htobe64(k);
+                        memcpy(response_arr, &k_conv, sizeof(k_conv));
+                        break;
+                }
+        }
+}
 
-		for(i = 0; i < 32; i++){
-			if(big_endian_arr[i] != sha256_test[i]){
-				sha_good = 0;
-				break;
-			}
-		}
-		if(sha_good){
-			k_conv = htobe64(k);
-			memcpy(response_arr, &k_conv, sizeof(k_conv));
-			break;
-		}
+
+void* request_handler_thread(void* args){
+	
+	while(1){
+		uint8_t response[RESPONSE_LEN] = {0};
+		struct QNode* qnode;
+
+		sem_wait(&full);
+		sem_wait(&mutexD);
+		qnode = deQueue(queue_global);
+		sem_post(&mutexD);
+		sem_post(&empty);
+
+		rev_hash(qnode->key->package, response);
+		send(qnode->key->sock, response, RESPONSE_LEN, 0);
+	        close(qnode->key->sock);
+		free(qnode->key);
+		free(qnode);
 	}
 }
 
+
 int main(int argc, char *argv[])
-{	
+{
 	int PORT;
 	if (argc > 1)
 		PORT = atoi(argv[1]);
@@ -104,34 +140,60 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	
 	struct sockaddr_in client_addr;
 	uint client_address_len = 0;
+	
+	pthread_t rht;
+
+	//Initialize sempahores
+	sem_init(&mutexD, 0, MUTEX_INITIAL);
+	sem_init(&empty, 0, SEM_EMPTY_INITIAL);
+	sem_init(&full, 0, SEM_FULL_INITIAL);
+
+	//Create threads
+	int i;
+	for(i = 0; i < MAX_THREADS; i++){
+		pthread_create(&rht, NULL, request_handler_thread, NULL);
+	}
+	sleep(1); //Give threads a chance to start
+
+	printf("\nServing on %s:%d\n", inet_ntoa(server_addr.sin_addr), PORT);
+	int sock;
+
+	// Init Queue
+	// 
+
+	int j;
+    	for (j=0; j<NUMBER_OF_PRIOS; j++)
+		queue_global[j] = *createQueue();
+
 	while (1)
 	{
-		int sock;
+			
 		if ((sock = accept(listen_sock, (struct sockaddr *) &client_addr, &client_address_len)) < 0)
+                {
+                        perror("couldn't open a socket to accept data");
+                        return 1;
+                }
+
+		uint8_t buff[MESSAGE_LEN] = {0};
+		uint8_t *pbuff = buff;
+		struct request* req = (struct request *)malloc(sizeof(struct request));
+		int n;
+
+		if ((n = recv(sock, pbuff, MESSAGE_LEN, 0)) > 0)
 		{
-			perror("couldn't open a socket to accept data");
-			return 1;
+			initReq(req, buff, sock);
 		}
 
-		int n = 0;
-		int len = 0, maxlen=MESSAGE_LEN;
-		uint8_t buffer[MESSAGE_LEN] = {0};
-		uint8_t *pbuffer = buffer;
-		uint8_t response[RESPONSE_LEN] = {0};
-		while ((n = recv(sock, pbuffer, maxlen, 0)) > 0)
-		{
-			pbuffer += n;
-			maxlen -= n;
-			len += n;
+		sem_wait(&empty);
+		sem_wait(&mutexD);
+		enQueue(queue_global, req); // request packet pointer
+		sem_post(&mutexD);
+		sem_post(&full);
 
-			rev_hash(buffer, response);
-			send(sock, response, RESPONSE_LEN, 0);
-		}
-		close(sock);
-	}
+        }
 	close(listen_sock);
 	return 0;
 }
-
