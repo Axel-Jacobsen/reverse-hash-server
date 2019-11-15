@@ -17,7 +17,7 @@
 #define SHA_LEN 32
 #define RESPONSE_LEN 8
 
-#define CACHE_SIZE 10
+#define CACHE_SIZE 10000
 #define PRIME 7753
 
 typedef struct node
@@ -38,7 +38,7 @@ void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 }
 
 void cache_print(){
-    int i;
+    int i, counter;
     node* printptr = malloc(sizeof(node));
     for(i = 0; i < CACHE_SIZE; i++){
 	printf("[%d]: ", i);
@@ -46,15 +46,13 @@ void cache_print(){
 	    printf("NULL\n");
 	}
 	else{
-	    printptr = cache[i];
-	    while(1){
-		printf("%ld ", printptr->value);
-		if(printptr->next == NULL){
-			break;
-		}
-		printptr = printptr->next;
-	    }
-	    printf("\n");
+		printptr = cache[i];
+		while(!(printptr->next->next == NULL)){ 
+			printf("%ld ", printptr->value);
+			++counter;
+			printptr = printptr->next;
+	    	}
+	    	printf("\n");
 	    
 	}
     }
@@ -152,11 +150,11 @@ void cache_insert(int key, uint64_t buffer)
     predptr = predptr->next;
   }
   if(sha_good){
-    printf("Found in cache : %d\n", key);
+    printf("Found in cache : %d\n\n", key);
     return (int64_t) predptr->value;
   }
   else {
-    printf("Not found in cache : %d\n", key);
+    printf("Not found in cache : %d\n\n", key);
     return -1;
   }
 
@@ -166,7 +164,7 @@ void cache_insert(int key, uint64_t buffer)
 void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 {
   int key = cache_hash(big_endian_arr);
-  int8_t cache_result = cache_search(key, big_endian_arr);
+  int64_t cache_result = cache_search(key, big_endian_arr);
   if(cache_result == -1){
 		uint8_t i;
 		uint64_t start = 0;
@@ -200,14 +198,7 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 				memcpy(response_arr, &k_conv, sizeof(k_conv));
 				printf("Starting insert of %ld\n", k);
 				cache_insert(key, k);
-				if(cache[1] == NULL){
-				    printf("Oh shit, still NULL\n");
-				}
-				else{
-				    printf("%ld\n\n", cache[1]->value);
-				}
-				break;	
-				}
+			}
 		}
 	}
 	else{
