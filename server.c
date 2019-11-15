@@ -27,68 +27,10 @@
 #define SEM_EMPTY_INITIAL 100
 #define MUTEX_INITIAL 1
 
-typedef struct FIFO_CircArr{
-	int rear, front;
-	int size;
-	int* arr;
-}FIFO_CircArr;
 
-FIFO_CircArr queue_global;
+struct Queue queue_global[NUMBER_OF_PRIOS];
+
 sem_t mutexD, empty, full;
-//Queue functions
-
-int isFull(){
-	if((queue_global.front == queue_global.rear + 1) || (queue_global.front == 0 && queue_global.rear == queue_global.size-1)) return 1;
-	return 0;
-}
-
-int isEmpty()
-{
-	if(queue_global.front == -1) return 1;
-	return 0;
-}
-
-void enQueue(int element){
-	if(isFull())
-	{
-		//printf("\n Job queue is full!!!\n");
-	}
-	else
-	{
-		if(queue_global.front == -1)
-		{
-			queue_global.front = 0;
-		}
-		queue_global.rear = (queue_global.rear + 1) % queue_global.size;
-		queue_global.arr[queue_global.rear] = element;
-		//printf("\n Inserted -> %d\n", element);
-	}
-}
-
-
-
-int deQueue()
-{
-	int element;
-	if(isEmpty())
-	{
-		//printf("\nQueue is empty !!\n");
-		return(-1);
-	}else
-	{
-		element = queue_global.arr[queue_global.front];
-		if(queue_global.front == queue_global.rear)
-		{
-			queue_global.front = -1;
-			queue_global.rear = -1;
-		}else
-		{
-			queue_global.front = (queue_global.front + 1) % queue_global.size;
-		}
-		//printf("\nDeleted element -> %d\n", element);
-		return element;
-	}
-}
 
 
 void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
@@ -139,29 +81,22 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 
 
 void* request_handler_thread(void* args){
-        uint8_t buffer[MESSAGE_LEN] = {0};
-        uint8_t response[RESPONSE_LEN] = {0};
 	
 	while(1){
-		int sock;
-		int n = 0;
-		int len = 0;
-		int maxlen = MESSAGE_LEN;
-		uint8_t *pbuffer = buffer;
+		uint8_t response[RESPONSE_LEN] = {0};
+		struct QNode* qnode;
+
 		sem_wait(&full);
 		sem_wait(&mutexD);
-		sock = deQueue();
+		qnode = deQueue(queue_global);
 		sem_post(&mutexD);
 		sem_post(&empty);
-	        while ((n = recv(sock, pbuffer, maxlen, 0)) > 0)
-        	{
-                	pbuffer += n;
-	                maxlen -= n;
-        	        len += n;
-                	rev_hash(buffer, response);
-	                send(sock, response, RESPONSE_LEN, 0);
-        	}
-	        close(sock);
+
+		rev_hash(qnode->key->package, response);
+		send(qnode->key->sock, response, RESPONSE_LEN, 0);
+	        close(qnode->key->sock);
+		free(qnode->key);
+		free(qnode);
 	}
 }
 
@@ -215,6 +150,7 @@ int main(int argc, char *argv[])
 	sem_init(&mutexD, 0, MUTEX_INITIAL);
 	sem_init(&empty, 0, SEM_EMPTY_INITIAL);
 	sem_init(&full, 0, SEM_FULL_INITIAL);
+
 	//Create threads
 	int i;
 	for(i = 0; i < MAX_THREADS; i++){
@@ -224,10 +160,14 @@ int main(int argc, char *argv[])
 
 	printf("\nServing on %s:%d\n", inet_ntoa(server_addr.sin_addr), PORT);
 	int sock;
-	queue_global.size = QUEUE_SIZE;
-	queue_global.rear = -1;
-	queue_global.front = -1;
-	queue_global.arr = malloc(QUEUE_SIZE * sizeof(int));
+
+	// Init Queue
+	// 
+
+	int j;
+    	for (j=0; j<NUMBER_OF_PRIOS; j++)
+		queue_global[j] = *createQueue();
+
 	while (1)
 	{
 			
@@ -236,9 +176,20 @@ int main(int argc, char *argv[])
                         perror("couldn't open a socket to accept data");
                         return 1;
                 }
+
+		uint8_t buff[MESSAGE_LEN] = {0};
+		uint8_t *pbuff = buff;
+		struct request* req = (struct request *)malloc(sizeof(struct request));
+		int n;
+
+		if ((n = recv(sock, pbuff, MESSAGE_LEN, 0)) > 0)
+		{
+			initReq(req, buff, sock);
+		}
+
 		sem_wait(&empty);
-		sem_wait(&mutexD);	
-		enQueue(sock);
+		sem_wait(&mutexD);
+		enQueue(queue_global, req); // request packet pointer
 		sem_post(&mutexD);
 		sem_post(&full);
 
