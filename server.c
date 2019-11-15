@@ -11,7 +11,6 @@
 #include <string.h>
 #include <inttypes.h>
 
-
 #include "messages.h"
 
 #define SERVER_IP "192.168.101.10"
