@@ -98,7 +98,7 @@ void cache_insert(int key, uint64_t buffer)
 
   while (1) {
     sha_good = 1;
-    sha256(predptr->value, sha256_test);
+    sha256(&predptr->value, sha256_test);
 
     for(i = 0; i < SHA_LEN; i++){
 			if(client[i] != sha256_test[i]){
