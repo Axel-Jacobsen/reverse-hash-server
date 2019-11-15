@@ -12,6 +12,9 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include "messages.h"
+#include "caching.h"
+#include "priority.h"
+
 
 #define SERVER_IP "192.168.101.10"
 #define MESSAGE_LEN 49
@@ -24,13 +27,14 @@
 #define MUTEX_INITIAL 1
 #define CHILDTHREADS 4
 
+Queue queue_global[NUMBER_OF_PRIOS];
+Node* cache[CACHE_SIZE] = {NULL};
+
 typedef struct FIFO_CircArr{
 	int rear, front;
 	int size;
 	int* arr;
 }FIFO_CircArr;
-
-pthread_t child_thread;
 
 typedef struct Thread_input{
 	int padding;
@@ -97,61 +101,6 @@ void* thread_start_function(void* args){
 //printf("Start exited normally\n");
 }
 
-
-//Queue functions
-
-int isFull(){
-	if((queue_global.front == queue_global.rear + 1) || (queue_global.front == 0 && queue_global.rear == queue_global.size-1)) return 1;
-	return 0;
-}
-
-int isEmpty()
-{
-	if(queue_global.front == -1) return 1;
-	return 0;
-}
-
-void enQueue(int element){
-	if(isFull())
-	{
-		//printf("\n Job queue is full!!!\n");
-	}
-	else
-	{
-		if(queue_global.front == -1)
-		{
-			queue_global.front = 0;
-		}
-		queue_global.rear = (queue_global.rear + 1) % queue_global.size;
-		queue_global.arr[queue_global.rear] = element;
-		//printf("\n Inserted -> %d\n", element);
-	}
-}
-
-
-
-int deQueue()
-{
-	int element;
-	if(isEmpty())
-	{
-		//printf("\nQueue is empty !!\n");
-		return(-1);
-	}else
-	{
-		element = queue_global.arr[queue_global.front];
-		if(queue_global.front == queue_global.rear)
-		{
-			queue_global.front = -1;
-			queue_global.rear = -1;
-		}else
-		{
-			queue_global.front = (queue_global.front + 1) % queue_global.size;
-		}
-		//printf("\nDeleted element -> %d\n", element);
-		return element;
-	}
-}
 
 
 void rev_hash(uint8_t *big_endian_arr, int sock, int main_thread_num)
@@ -225,27 +174,39 @@ void* request_handler_thread(void* args){
 	int*  main_thread_num = (int*) args;
         uint8_t buffer[MESSAGE_LEN] = {0};
         uint8_t response[RESPONSE_LEN] = {0};
-	
 	while(1){
-		int sock;
-		int n = 0;
-		int len = 0;
-		int maxlen = MESSAGE_LEN;
-		uint8_t *pbuffer = buffer;
+		uint8_t response[RESPONSE_LEN] = {0};
+		QNode* qnode;
+
 		sem_wait(&full);
 		sem_wait(&mutexD);
-		sock = deQueue();
+		qnode = deQueue(queue_global);
 		sem_post(&mutexD);
 		sem_post(&empty);
-	        while ((n = recv(sock, pbuffer, maxlen, 0)) > 0)
-        	{
-                	pbuffer += n;
-	                maxlen -= n;
-        	        len += n;
+
+		int key = cache_hash(qnode->key->hash);
+		uint8_t *cache_res = cache_search(key, qnode->key->hash, cache);
+
+		if (cache_res == NULL)
+		{
+			rev_hash(qnode->key->hash, response);
+			send(qnode->key->sock, response, RESPONSE_LEN, 0);
+			cache_insert(key, qnode->key->hash, response, cache);
+		}
+		else
+		{
+			uint8_t response_arr[RESPONSE_LEN] = {0};
+                        memcpy(response_arr, cache_res, RESPONSE_LEN);
+			send(qnode->key->sock, response_arr, RESPONSE_LEN, 0);
+		}
+
+		close(qnode->key->sock);
+		free(qnode->key);
+		free(qnode);
+	}
                 	rev_hash(buffer, sock, *main_thread_num);
-	                //send(sock, response, RESPONSE_LEN, 0);
-        	}
-	        close(sock);
+	                
+	        
 		flags[*main_thread_num].f = 0;
 	}
 }
@@ -315,23 +276,44 @@ int main(int argc, char *argv[])
 	
 	printf("\nServing on %s:%d\n", inet_ntoa(server_addr.sin_addr), PORT);
 	int sock;
-	queue_global.size = QUEUE_SIZE;
-	queue_global.rear = -1;
-	queue_global.front = -1;
-	queue_global.arr = malloc(QUEUE_SIZE * sizeof(int));
+
+	//Init Queue
+	int j;
+	for(j = 0; j < NUMBER_OF_PRIOS; j++)
+		queue_global[j] = *createQueue();
+
 	while (1)
 	{
-			
+				
 		if ((sock = accept(listen_sock, (struct sockaddr *) &client_addr, &client_address_len)) < 0)
                 {
                         perror("couldn't open a socket to accept data");
                         return 1;
                 }
-		sem_wait(&empty);
-		sem_wait(&mutexD);	
-		enQueue(sock);
-		sem_post(&mutexD);
-		sem_post(&full);
+		uint8_t buff[MESSAGE_LEN] = {0};
+		uint8_t *pbuff = buff;
+		request* req = (request *)malloc(sizeof(request));
+
+		recv(sock, pbuff, MESSAGE_LEN, 0);
+
+		int key = cache_hash(buff);
+		uint8_t *cache_res = cache_search(key, buff, cache);
+		if (cache_res == NULL)
+		{
+			initReq(req, buff, sock);
+			sem_wait(&empty);
+			sem_wait(&mutexD);
+			enQueue(queue_global, req); // request packet pointer
+			sem_post(&mutexD);
+			sem_post(&full);
+
+		}
+		else
+		{
+			uint8_t response_arr[RESPONSE_LEN] = {0};
+                        memcpy(response_arr, cache_res, RESPONSE_LEN);
+			send(sock, response_arr, RESPONSE_LEN, 0);
+		}
 
         }
 		
