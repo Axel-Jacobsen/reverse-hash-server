@@ -15,14 +15,6 @@ typedef struct Node
 	struct Node *next;
 } Node;
 
-void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
-{
-	SHA256_CTX sha256;
-	SHA256_Init(&sha256);
-	SHA256_Update(&sha256, v, sizeof(v));
-	SHA256_Final(out_buff, &sha256);
-}
-
 int cache_hash(uint8_t *hash_arr)
 {
 	int hash = 0;

@@ -34,6 +34,14 @@ Node *cache[CACHE_SIZE] = {NULL};
 sem_t mutexD, empty, full;
 
 
+void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
+{
+	SHA256_CTX sha256;
+	SHA256_Init(&sha256);
+	SHA256_Update(&sha256, v, sizeof(v));
+	SHA256_Final(out_buff, &sha256);
+}
+
 void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 {
         uint64_t start = 0;
