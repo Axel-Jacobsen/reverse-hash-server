@@ -29,6 +29,14 @@ node;
 
 node* cache[CACHE_SIZE] = {NULL};
 
+void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
+{
+	SHA256_CTX sha256;
+	SHA256_Init(&sha256);
+	SHA256_Update(&sha256, v, sizeof(v));
+	SHA256_Final(out_buff, &sha256);
+}
+
 int cache_hash(uint8_t* hash_arr)
 {
     int i, hash;
@@ -90,8 +98,7 @@ void cache_insert(int key, uint64_t buffer)
 
   while (1) {
     sha_good = 1;
-    node_value = predptr->value;
-    sha256(&pred_value, sha256_test);
+    sha256(predptr->value, sha256_test);
 
     for(i = 0; i < SHA_LEN; i++){
 			if(client[i] != sha256_test[i]){
@@ -117,14 +124,6 @@ void cache_insert(int key, uint64_t buffer)
     return -1;
   }
 
-}
-
-void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
-{
-	SHA256_CTX sha256;
-	SHA256_Init(&sha256);
-	SHA256_Update(&sha256, v, sizeof(v));
-	SHA256_Final(out_buff, &sha256);
 }
 
 // *big_endian_arr is an array of bytes, response_arr is a pointer to an array of the same size
