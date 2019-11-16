@@ -25,8 +25,8 @@ Base version | 293,367,363 | 279,708,346 | 274,332,655 | 282,637,657 | 276,751,6
 ## Theory
 In the first version of our server we create a hash from the sha256 algorithm for every number between the __start__ and __end__. Then we check if one of those are equal to the original hash that we have received from the packet. We check for equality by traversing all the 32 bytes of both hashes and checking if the are equal. This means we traverse the original hash everytime we need to check for equality with a hash created from the sha256 algorithm. There should be no reason for traversing the original hash everytime we need to check if the correct hash has been found. By converting the 32 bytes of the original hash into four 64-bit integers, we can save them for later use. The sha256 hash also has to be converted to four 64-bit integers. To check for equality we then have to see if the four integers from the original hash are equal to the four integers from the sha256. By doing this we still have to traverse the 32 bytes of the sha256 hash for every sha256 hash that we create. On the other hand we only traverse the original hash once. This should make our server faster since it traverse a lot less data. 
 
-## implementation
-instead of passing the original hash as an array, the parts such as the __start__, __end__ and __priority__ are selected from the packet and saved as variables in the struct. The original hash is then converted to four 64-bit integers and saved in the struct as variables.
+## Implementation
+Instead of passing the original hash as an array, the parts such as the __start__, __end__ and __priority__ are selected from the packet and saved as variables in the struct. The original hash is then converted to four 64-bit integers and saved in the struct as variables.
 
 ## Test results
 All the tests have been run on the same machine.        
