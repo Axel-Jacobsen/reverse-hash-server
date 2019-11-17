@@ -60,17 +60,17 @@ Casper Egholm Jørgensen (s163950) git-user "Cladoc"
 As the virtual machine is configured with multiple processor cores it makes sense to conduct experiments with multithreading in an attempt to utilize these capabilities.
 I conducted three experiments involving multithreading of which one was included in the final server.
 
-## Popup request handling threads
+### Popup request handling threads
 The first experiment had a main thread continuously listening for requests, and upon accepting one, create a popup-thread to handle the request. The integer identifying the socket with the pending message is passed as parameters when the thread is created. The thread then reads the message from the socket, finds the answer, sends it to the client and terminates.  
 
-## Job delegation - Solution with no shared buffer
+### Job delegation - Solution with no shared buffer
 Upon initial testing of the popup-threads method, it was hypothesized to contain three issues that could be improved upon. 
 First, having an "unlimited number"(comments on this in the discussion) running simultaneously would (occuring for high continuous bursts of requests) lead to congestion on processor usage making the order in which requests arrived indifferent. To achieve lower average delay, the requests would have to be handled in the order they arrive and have those prioritized over later arrivals.
 Secondly, 
 Secondly it would be faster if the threads handling requests could be created on server start-up instead of dynamically, avoiding overhead.
 In this experiment, instead of creating popup threads for each request, a select number of threads would be created on server start. The main thread would accept incoming requests and delegate it to a worker thread when any is available. If no thread is available, the main thread will wait until one is, identifying each worker thread by their own semaphore.
 
-## Job delegation - Classic producer/consumer scheme
+### Job delegation - Classic producer/consumer scheme
 The above solution uses a check and delegate-or-wait solution. If no thread is ready to handle a request, the main thread will sleep for 1 second and check again. However, if the thread is done working early, the main thread is still sleeping, wasting time.
 This solution makes use of a classic concurrent programming technique that solves a producer-consumer problem (or bounded-buffer problem) using threads, semaphores and a circular array. Initially, before the main thread launches the server service, it creates a predefined number of idle request handling threads. The main thread is then responsible for listening for established connection on sockets and enqueuing the integer identifying said socket in the queue indicating that a request is available for the worker threads to handle. 
 
@@ -83,7 +83,7 @@ This use of semaphores to signal whenever items are ready in the queue and havin
 This solution trumps the popup-thread experiment in both performance and safety as it is a well known technique. Performance wise, the sheer amount of popup-threads running concurrently in the first experiment renders the average response for any request very high, as they are all handled concurrently, thus not guaranteeing that request arriving first will be responsed to first. This solution allows for constraints on the maximum number of threads that can operate concurrently while still utilizing the multiple cores.
 This solution was further more chosen over the other delegation technique because of slightly better performance, easy scalability and ease to integrate with the priority queue.
 
-## Test results
+### Test results
 | Server-version               | Test 1          | Test 2      | Test 3      | Average score |
 |------------------------------|-----------------|-------------|-------------|-------------- |
 | Base version                 | 222,218859      | 222,688,812 | 221,733,401 | 222,213,690   |
@@ -91,15 +91,15 @@ This solution was further more chosen over the other delegation technique becaus
 | Job delegation(4 threads)    | 105,673,304     | 103,258,324 | 102,660,669 | 103,864,099   |
 | Producer/consumer(4 threads) | 101,071,113     | 103,732,729 | 103,008,310 | 102,604,050   |
 
-## Discussion
+### Discussion
 The producer/consumer solution was the technique carried on to the final solution of the three experiments because of its concise implementation, great scalability, ease to integrate with the priority queue experiments and last but not least performance compared with the base implementation.
 This solution trumps the popup-thread experiment in both performance and safety as it is a well known technique. Performance wise, the sheer amount of popup-threads running concurrently in the first experiment renders the average response for any request very high, as they are all handled concurrently, thus not guaranteeing that request arriving first will be responsed to first. This solution allows for constraints on the maximum number of threads that can operate concurrently while still utilizing the multiple cores. 
 This solution was further more chosen over the other delegation technique because of slightly better performance and ease to integrate with the priority queue. 
 
-## Conclusion
+### Conclusion
 The producer/consumer solution was the technique carried on to the final solution of the three experiments because of its concise implementation, great scalability, ease to integrate with the priority queue and last but not least performance compared with the base implementation.
 
-## Location of code
+### Location of code
  A branch by the name Multithreaded-Job\_Delegation can be found on the Github repository with 3 directories named "backup\_popup" (First experiment), "backup\_delegation1" (second experiment) and "backup\_consumer\_producer" (final experiment). 
 
 ---------------------------------
