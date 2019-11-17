@@ -64,6 +64,7 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 				k_conv = htobe64(k);
 				memcpy(response_arr, &k_conv, sizeof(k_conv));
 				cache_insert(key, big_endian_arr, k);
+				break;
 			}
 		}
 	}
