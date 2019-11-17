@@ -39,17 +39,17 @@ The test results show no noticable change in the speed of the server. Therefore 
 With a repeatability of 20% in the __run-client-final.sh__, there is a 1/5 chance of the same request coming again, immediately after. Therefor it could be helpful to save the computed hashes, and simply look the hash up, when it is needed, instead of 'guessing' it, from all possible values.
 The code for this experiment can be found on the __alternative_equality_checking__ branch. The __server.c__ file is just the base server file, except the original hash is saved in a struct. The __server_with_int.c__ file also contains the alternative way of equality checking.
 
-
-##Multithreading - Job delegation
+----------------------------------
+## Multithreading - Job delegation
 Casper Egholm Jørgensen (s163950) git-user "Cladoc"
 As the virtual machine is configured with multiple processor cores it makes sense to conduct experiments with multithreading in an attempt to utilize these capabilities.
 I conducted three experiments involving multithreading of which one was included in the final server.
 
-#Popup request handling threads
+# Popup request handling threads
 
-#Job delegation - Solution with no shared buffer
+# Job delegation - Solution with no shared buffer
 This solution was 
-#Job delegation - Classic producer/consumer scheme
+# Job delegation - Classic producer/consumer scheme
 This solution was the technique carried on to the final solution of the three experiments because of its clear and concise implementation, great scalability, ease to integrate with the priority queue and last but not least performance.
 This solution makes use of a classic concurrent programming technique that solves a producer-consumer problem (or bounded-buffer problem) using threads, semaphores and a circular array. Initially, before the main thread launches the server service, it creates a predefined number of idle request handling threads. The main thread is then responsible for listening for established connection on sockets and enqueuing the integer identifying said socket in the queue indicating that a request is available for the worker threads to handle. 
 The queue is in this experiment constructed as a FIFO circular array. If a request handling thread is idle/waiting, it will be woken on a job insertion and dequeue a client request socket number from the queue and handle the request.
@@ -57,6 +57,7 @@ As both the the main threads and worker threads will be performing enqueues and 
 This use of semaphores to signal whenever items are ready in the queue and having threads sleep and wake up properly by the nature of semaphores avoids busy-waiting and is thus very efficient. The amount of worker threads idle at any time is easy to modify by changing a single macro. Good results were found for 4 to 10 threads alive at any time.
 This solution trumps the popup-thread experiment in both performance and safety as it is a well known technique. Performance wise, the sheer amount of popup-threads running concurrently in the first experiment renders the average response for any request very high, as they are all handled concurrently, thus not guaranteeing that request arriving first will be responsed to first. This solution allows for constraints on the maximum number of threads that can operate concurrently while still utilizing the multiple cores. 
 This solution was further more chosen over the other delegation technique because of slightly better performance, easy scalability and ease to integrate with the priority queue. 
+----------------------------------
 
 
 
