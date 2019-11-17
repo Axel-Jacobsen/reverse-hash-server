@@ -3,4 +3,3 @@ compile:
 
 clean:
 	@rm server
-
