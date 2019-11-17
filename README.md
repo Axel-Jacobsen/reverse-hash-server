@@ -12,26 +12,39 @@ The final implementation uses several of the experiments that we used below. At 
 The code for caching and the priority queue are in `caching.h` and `priority.h` respectively. The main server implementation is `server.c`.
 
 ## Priority
-
 Since the weighted scores multiply the run time of a request by the priority of the request, a simple idea for improving the final score, would be to try to lower the run time for higher priority requests, even if that means increasing the run time of lower priority requests.
 
-To do this we have decided to insert the request we recieve into a queue of some sort, and then once we have a certain amount of request in this queue we extract the request with the highest priority from the queue and handle that request. Once we start working with multible threads we can think about having one thread for putting request into the queue and a number of threads handling requests from the queue. This way we wouldn't need to wait untill we have a certain amount of requests in the queue and can just start handling them immedeatly.
-To be able to handle a request we extract from the queue, we need to have a way of getting the socket that the request was sent through. To do this we make a __struct request__ that contains the packet from a request and the socket it came from, and store these structs on the queue.
-Now we have most of the stuff needed to implement a priority queue,
+To do this we decided to insert the request we recieve into a queue of some sort, and when we then want to handle a request we  extract the reqest with the highest priority. Ideally we would like one thread to put request in the queue and other threads to handle the requests, but for this experiment we simply wait untill we have a few request in the queue before we start handling them.
 
-### Priority using a single list
+To be able to handle a request we extract from the queue, we need to have a way of getting the socket that the request was sent through. To do this we made a __struct request__ that contains the packet from a request and the socket it came from, and store these structs on the queue.
+#### Priority using a single sorted list
+To start with we just wanted a simple queue, so we could test the structs, and also see if the priority made a noticable difference, before we started making a more complex queue structure.
+For this simple version, we made a single list, and when we insert requests we make sure to insert it at a place in the list that ensures it is sorted. This way we can just take the first element in the list when we want to extract a request.
 
-Using a single sorted list to store requests
+Using priority implementation with this sorted list we get a score improvement of about 7.6% from the base version.
+This is a very small improvement, but it's enough to show that prioritising high-priority request at the cost of low-priority request can make a reasonable improvement, if we make a more efficient queue.
 
-### Priority using 16 queues
+#### Priority using 16 queues
+Now we knew the priority implementation couild work, but our queue was very slow. Because of this we decided to make a new experiment with a (on paper) faster queue implementation. 
 
-Using a first in first out queue for every level of priority. (fastest)
+We decided to make a simple FIFO queue for each level of priority. Since there is 16 priority levels we need 16 queues. For the queues themselves we use linked list queues, since we will have some queues that are empty and some that have a lot of elements. With a linked list we don't have to wory about any of the queues being filled, spending time increasing the size of some of the queues or waisting memory on empty queues. Linked list queues also allow us to have very fast insert and extract operations.
+
+For inserting a request we find the priority of the request and insert it at the end of the queue corosponding to that peiority. For extracting we find the highest priority queue that is not empty, and take the front element in that queue.
+
+Using this implementation for the queue we get a 27.2% score improvement over the base version.
+This is a very good improvement, and we would definitely want to utilize this in the final version of the server.
+
+### Test results
+All the test-scores from these 2 experiments can be found in the table below. All of the tests for the experiment was run on the same machine using the __run-client-milestone__ test.
 
 | Server-version         | Test 1      | Test 2      | Test 3      | Test 4      | Test 5      | Average score |
 |------------------------|-------------|-------------|-------------|-------------|-------------|---------------|
 | Base version           | 293,367,363 | 279,708,346 | 274,332,655 | 282,637,657 | 276,751,659 | 285,054,511   |
 | 1-sorted-list-priority | 272,559,508 | 276,590,468 | 255,518,303 | 266,730,014 | 254,159,835 | 263,359,672   |
 | 16-Queue-priority      | 204,356,849 | 214,204,695 | 211,464,262 | 209,549,930 | 210,652,128 | 207,504,489   |
+
+### Location of the code
+The source code for this experiment can be found on the __priority__ branch in the repository, in the server.c file. The most recent commit on the branch contains the version with the 16 FIFO queues. The version with 1 sorted list can be found on an old commit (64b5743) with the commit-message: "working version of simple priority using 1 list".
 
 ---------------------------------
 
