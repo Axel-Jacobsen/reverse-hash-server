@@ -89,10 +89,10 @@ For a hash table, a hash function is needed to assign a bucket. This results in 
 For a representation, the individual bits, of the hash from the sha256 hashing, are summed. 
 The prime number chosen is `7753`. And the number of buckets is `10,000`.
 
-The way our caching is used, is that when a hash is recieved and ready to be broken. The key for the hash is computed, and that linked list is searched for the hash, if the hash is found in the cache, the value is retured back, and is sent back to the client. If the hash is not found, the hash is given to the brute forcing. When the hash then is found with brute forcing, it is inserted in the cache, and sent back to the client. 
+The way our caching is used, is that when a hash is received and ready to be broken. The key for the hash is computed, and that linked list is searched for the hash, if the hash is found in the cache, the value is returned back, and is sent back to the client. If the hash is not found, the hash is given to the brute forcing. When the hash then is found with brute forcing, it is inserted in the cache, and sent back to the client. 
 
 ### Test results
-These were done on the __run-client-milestone.sh__ file. 
+These were done on the `run-client-milestone.sh` file.
 
 | Server-version         | Test 1      | Test 2      | Test 3      | Average score |
 |------------------------|-------------|-------------|-------------|---------------|
@@ -100,10 +100,10 @@ These were done on the __run-client-milestone.sh__ file.
 | With caching           | 157,382,456 | 156,380,437 | 156,123,207 | 156,628,700   |
 
 ### Conclusion
-As you can see the use of our caching resulted in a 14.79% reduction in run time. This shows that it is worth the run time to make a hash table, search in it, and insert new elements, to get reap the benefit of having all prior hashes og corrosponding values stored.
+As you can see the use of our caching resulted in a 14.79% reduction in run time. This shows that it is worth the run time to make a hash table, search in it, and insert new elements, to get reap the benefit of having all prior hashes og corresponding values stored.
 
 ### Location of code
-The code for the caching experiment can be found on the branch `caching` in the files __caching.h__ (functions) and __server.c__ (utilization).
+The code for the caching experiment can be found on the branch `caching` in the files __caching.h__ (functions) and __server.c__ (use).
 
 ---------------------------------
 
