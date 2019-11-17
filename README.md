@@ -42,11 +42,13 @@ The code for this experiment can be found on the __alternative_equality_checking
 ----------------------------------
 # Multithreading - Job delegation
 Casper Egholm Jørgensen (s163950) git-user "Cladoc"
+
 As the virtual machine is configured with multiple processor cores it makes sense to conduct experiments with multithreading in an attempt to utilize these capabilities.
 I conducted three experiments involving multithreading of which one was included in the final server.
 
 ## Popup request handling threads
 The first experiment had a main thread continuously listening for requests, and upon accepting one, create a popup-thread to handle the request. The integer identifying the socket with the pending message is passed as parameters when the thread is created. The thread then reads the message from the socket, finds the answer, sends it to the client and terminates.  
+
 ## Job delegation - Solution with no shared buffer
 Upon initial testing of the popup-threads method, it was hypothesized to contain three issues that could be improved upon. 
 First, having an "unlimited number"(comments on this in the discussion) running simultaneously would (occuring for high continuous bursts of requests) lead to congestion on processor usage making the order in which requests arrived indifferent. To achieve lower average delay, the requests would have to be handled in the order they arrive and have those prioritized over later arrivals.
@@ -62,6 +64,8 @@ The queue is in this experiment constructed as a FIFO circular array. If a reque
 As both the the main threads and worker threads will be performing enqueues and dequeues on the queue, mutual exclusion is ensured by the use of a mutex protecting against simultaneous buffer modfications from different threads. In addition, "empty" and "full" semaphores are used to allow the main threads and worker threads to communicate on the status of the buffer. Whenever "empty" is 0, the main thread will wait on this semaphore untill signalled by one of the worker threads that an item has been removed from the queue, and a slot therefore available, by incrementing the semaphore. Likewise, worker threads will, if the queue is empty, wait on the "full" semaphore which is incremented by the main thread, when a job is ready in the queue.
 
 This use of semaphores to signal whenever items are ready in the queue and having threads sleep and wake up properly by the nature of semaphores avoids busy-waiting and is thus very efficient. The amount of worker threads idle at any time is easy to modify by changing a single macro. Good results were found for 4 to 10 threads alive at any time.
+This solution trumps the popup-thread experiment in both performance and safety as it is a well known technique. Performance wise, the sheer amount of popup-threads running concurrently in the first experiment renders the average response for any request very high, as they are all handled concurrently, thus not guaranteeing that request arriving first will be responsed to first. This solution allows for constraints on the maximum number of threads that can operate concurrently while still utilizing the multiple cores. 
+This solution was further more chosen over the other delegation technique because of slightly better performance, easy scalability and ease to integrate with the priority queue. 
 
 ##Test results
 Server-version | Test 1 | Test 2 | Test 3 | Average score

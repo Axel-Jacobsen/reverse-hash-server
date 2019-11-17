@@ -23,12 +23,9 @@
 #define RESPONSE_LEN 8
 #define MAX_THREADS 4
 #define SEM_FULL_INITIAL 0
-#define SEM_EMPTY_INITIAL 1000
+#define SEM_MAX_VALUE 30000
 #define MUTEX_INITIAL 1
 #define CHILDTHREADS 4
-
-Queue queue_global[NUMBER_OF_PRIOS];
-Node* cache[CACHE_SIZE] = {NULL};
 
 typedef struct Thread_input{
 	int padding;
@@ -39,12 +36,17 @@ typedef struct Thread_input{
 	int worker_num;
 }Thread_input;
 
-sem_t mutexD, empty, full, cache_mutex;
 
 typedef struct Flag{
 	int f;
 }Flag;
+
+Queue queue_global[NUMBER_OF_PRIOS];
+Node* cache[CACHE_SIZE] = {NULL};
 Flag flags[MAX_THREADS];
+
+sem_t mutexD, empty, full, cache_mutex;
+
 
 void sha256(uint64_t *v, unsigned char out_buff[SHA256_DIGEST_LENGTH])
 {
@@ -237,7 +239,7 @@ int main(int argc, char *argv[])
 
 	//Initialize sempahores
 	sem_init(&mutexD, 0, MUTEX_INITIAL);
-	sem_init(&empty, 0, SEM_EMPTY_INITIAL);
+	sem_init(&empty, 0, SEM_MAX_VALUE);
 	sem_init(&full, 0, SEM_FULL_INITIAL);
 	sem_init(&cache_mutex, 0, MUTEX_INITIAL);
 	//Create threads
