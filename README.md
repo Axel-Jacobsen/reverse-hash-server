@@ -5,7 +5,7 @@
 The final implementation uses several of the experiments that we used below. At a high level, we used
 
 * Caching
-* Priority Ques to process higher priority requests first
+* Priority Queues to process higher priority requests first
 * Multithreading consumers for a producer-consumer architecture
 * Multithreading for individual reverse hash calculations
 
