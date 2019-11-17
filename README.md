@@ -51,25 +51,25 @@ The source code for this experiment can be found on the __priority__ branch in t
 
 ---------------------------------
 
-## Checking for equality of hashes
+# Checking for equality of hashes
 
-### Theory
+## Theory
+In the first version of our server we create a hash from the sha256 algorithm for every number between the __start__ and __end__. Then we check if one of those are equal to the original hash that we have received from the packet. We check for equality by traversing all the 32 bytes of both hashes and checking if the are equal. This means we traverse the original hash everytime we need to check for equality with a hash created from the sha256 algorithm. There should be no reason for traversing the original hash everytime we need to check if the correct hash has been found. By converting the 32 bytes of the original hash into four 64-bit integers, we can save them for later use. The sha256 hash also has to be converted to four 64-bit integers. To check for equality we then have to see if the four integers from the original hash are equal to the four integers from the sha256. By doing this we still have to traverse the 32 bytes of the sha256 hash for every sha256 hash that we create. On the other hand we only traverse the original hash once. This should make our server faster since it traverse a lot less data. Furthermore we process a lot less equality checks, instead of doing 32 equality checks per sha256 hash we only do four checks for equality with this alternative way.
 
-In the first version of our server we create a hash from the sha256 algorithm for every number between the __start__ and __end__. Then we check if one of those are equal to the original hash that we have received from the packet. We check for equality by traversing all the 32 bytes of both hashes and checking if the are equal. This means we traverse the original hash everytime we need to check for equality with a hash created from the sha256 algorithm. There should be no reason for traversing the original hash everytime we need to check if the correct hash has been found. By converting the 32 bytes of the original hash into four 64-bit integers, we can save them for later use. The sha256 hash also has to be converted to four 64-bit integers. To check for equality we then have to see if the four integers from the original hash are equal to the four integers from the sha256. By doing this we still have to traverse the 32 bytes of the sha256 hash for every sha256 hash that we create. On the other hand we only traverse the original hash once. This should make our server faster since it traverse a lot less data.
+## implementation
+instead of passing the original hash as an array, the parts such as the __start__, __end__ and __priority__ are selected from the packet and saved as variables in the struct. The original hash is then converted to four 64-bit integers and saved in the struct as variables.
 
-### Implementation
+## Test results
+All the tests have been run on the same machine and they have been run with the milestone client. The alternative way of equality checking is tested against the base version of the server, they are both tested three times to find an average speed of the different servers.
+|             | score 1   | score 2   | score 3   | avg.      |
+|-------------|-----------|-----------|-----------|-----------|
+| base        | 424811805 | 420360175 | 421381709 | 422184563 |
+| alternative | 438156320 | 428630913 | 427886764 | 431557999 |
+## Conclusion
+The test results show no noticable change in the speed of the server. If anything the server is being slowed down. Our theory is that the compiler is smart enough to see that it has to traverse the same data a lot of times, and therefore it does no difference in the speed of the server when we manually makes it go through less data. Therefore it can be concluded that this alternative way of checking for equality between hashes, does not improve the performance of our server. Therefore it is not implemented in our final solution for the server.
 
-Instead of passing the original hash as an array, the parts such as the __start__, __end__ and __priority__ are selected from the packet and saved as variables in the struct. The original hash is then converted to four 64-bit integers and saved in the struct as variables.
-
-### Test results
-
-All the tests have been run on the same machine.
-
-### Conclusion
-
-The test results show no noticable change in the speed of the server. Therefore it can be concluded that this alternative way of checking for equality between hashes, does not improve the performance of our server. Therefore it is not implemen
-
-### Where to find code
+## Where to find code
+The code for this experiment can be found on the __alternative_equality_checking__ branch. The __server_with_int.c__ file contains the entire implementation of the alternative way of equality checking.
 
 ---------------------------------
 
