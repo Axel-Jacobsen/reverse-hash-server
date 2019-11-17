@@ -59,8 +59,9 @@ This use of semaphores to signal whenever items are ready in the queue and havin
 This solution trumps the popup-thread experiment in both performance and safety as it is a well known technique. Performance wise, the sheer amount of popup-threads running concurrently in the first experiment renders the average response for any request very high, as they are all handled concurrently, thus not guaranteeing that request arriving first will be responsed to first. This solution allows for constraints on the maximum number of threads that can operate concurrently while still utilizing the multiple cores. 
 This solution was further more chosen over the other delegation technique because of slightly better performance, easy scalability and ease to integrate with the priority queue. 
 
-
-
+----------------------------------
+# Multithreading 
+The branch Magnus_experiment contains an experiment testing. 
 
 
 
