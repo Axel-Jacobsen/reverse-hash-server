@@ -92,7 +92,8 @@ The prime number chosen is `7753`. And the number of buckets is `10,000`.
 The way our caching is used, is that when a hash is recieved and ready to be broken. The key for the hash is computed, and that linked list is searched for the hash, if the hash is found in the cache, the value is retured back, and is sent back to the client. If the hash is not found, the hash is given to the brute forcing. When the hash then is found with brute forcing, it is inserted in the cache, and sent back to the client. 
 
 ### Test results
-These were done on the `run-client-milestone.sh` file.
+These were done on the __run-client-milestone.sh__ file. 
+
 | Server-version         | Test 1      | Test 2      | Test 3      | Average score |
 |------------------------|-------------|-------------|-------------|---------------|
 | Base version           | 182,710,240 | 184,350,403 | 184,383,114 | 183,814,586   |
