@@ -78,9 +78,14 @@ The code for this experiment can be found on the __alternative_equality_checking
 ---------------------------------
 
 ## Caching
+Emil Kosiara (s174265)
 
-With a repeatability of 20% in the __run-client-final.sh__, there is a 1/5 chance of the same request coming again, immediately after. Therefor it could be helpful to save the computed hashes, and simply look the hash up, when it is needed, instead of 'guessing' it, from all possible values.
-The code for this experiment can be found on the __alternative_equality_checking__ branch. The __server.c__ file is just the base server file, except the original hash is saved in a struct. The __server_with_int.c__ file also contains the alternative way of equality checking.
+With a repeatability of 20% in the `run-client-final.sh`, there is a `1/5` chance of the same request coming again, immediately after. Therefor it could be beneficial to save the computed hashes, and simply look the hash up, when it is needed, instead of brute forcing it.
+
+The chosen data structure for this was a hash table. It was implemented using an array containing the first element of a linked list, at each index. The linked list was implemented as a struct, containing an integer value, the sha256 hash of that integer saved in an uint8_t array, and a pointer pointing at the next element in the list, or `NULL` if the element is the last in the list.
+
+For a hash table, a hashing function is needed to assign a bucket. The function should consist of three parts. Firstly there has to be a representation of the element, then it is multiplied by a 'big' prime number, to reduce patterns in the hashes, and lastly a modulo operation with the modulus set as the numbers of buckets has to be calculated. 
+For a representation, the individual bits, of the hash from the sha256 hashing, are summed. The prime number chosen is `7753`. And the number of buckets is 10,000.
 
 ---------------------------------
 
