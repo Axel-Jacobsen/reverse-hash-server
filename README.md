@@ -108,7 +108,7 @@ This use of semaphores to signal whenever items are ready in the queue and havin
 ### Test results
 | Server-version               | Test 1      | Test 2      | Test 3      | Average score |
 |------------------------------|-------------|-------------|-------------|---------------|
-| Base version                 | 222,218859  | 222,688,812 | 221,733,401 | 222,213,690   |
+| Base version                 | 222,218,859 | 222,688,812 | 221,733,401 | 222,213,690   |
 | Popup threads                | 148,934,733 | 147,034,193 | 150,031,367 | 148,666,764   |
 | Job delegation(4 threads)    | 105,673,304 | 103,258,324 | 102,660,669 | 103,864,099   |
 | Producer/consumer(4 threads) | 101,071,113 | 103,732,729 | 103,008,310 | 102,604,050   |
@@ -160,10 +160,10 @@ Regardless, this implementation was the fastest of all of the previous, and gave
 
 | Number of Forks | Score (Averaged over three runs of `run-client-milestone.sh`) |
 |-----------------|---------------------------------------------------------------|
-| 4               | 131827730                                                     |
-| 8               | 132823120                                                     |
-| 16              | 142406391                                                     |
-| 32              | 137639899                                                     |
+| 4               | 131,827,730                                                   |
+| 8               | 132,823,120                                                   |
+| 16              | 142,406,391                                                   |
+| 32              | 137,639,899                                                   |
 
 ### Conclusion
 
