@@ -61,10 +61,12 @@ instead of passing the original hash as an array, the parts such as the __start_
 
 ## Test results
 All the tests have been run on the same machine and they have been run with the milestone client. The alternative way of equality checking is tested against the base version of the server, they are both tested three times to find an average speed of the different servers.
+
 |             | score 1   | score 2   | score 3   | avg.      |
 |-------------|-----------|-----------|-----------|-----------|
 | base        | 424811805 | 420360175 | 421381709 | 422184563 |
 | alternative | 438156320 | 428630913 | 427886764 | 431557999 |
+
 ## Conclusion
 The test results show no noticable change in the speed of the server. If anything the server is being slowed down. Our theory is that the compiler is smart enough to see that it has to traverse the same data a lot of times, and therefore it does no difference in the speed of the server when we manually makes it go through less data. Therefore it can be concluded that this alternative way of checking for equality between hashes, does not improve the performance of our server. Therefore it is not implemented in our final solution for the server.
 
