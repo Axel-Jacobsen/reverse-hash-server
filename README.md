@@ -139,7 +139,6 @@ Regardless, this implementation was the fastest of all of the previous, and gave
 | 32              | 137639899                                                     |
 
 The number of forks that gave the best scores were 4 forks and 8 forks, with not a large difference inbetween them. This is because as the number of forks increases, the CPU uses more cycles switching between each process instead of processing reverse hashes. With this data, we used a smaller number of threads for our final implementation.
->>>>>>> ab3c1fd8c76f6839749c377c25d110135d8c7107
 
 ---------------------------------
 ## Multithreading for cracking speed
