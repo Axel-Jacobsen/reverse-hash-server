@@ -202,4 +202,4 @@ This was done on the 'run-client-milestone.sh' file.
 | 4 threads                    | 97,263,237  | 100,461,213 | 99,637,479  | 99,120,643    |
 
 ## Conclusion
-As expected the results for the implementations with two- and four threads are almost twice as fast. However, there was only a slight increase from four threads to two threads. For the final version, the amount of threads delegated to cracking the hash depends on the priority, which in theory should speed up cracking for higher priorities. 
+As expected the results for the implementations with two- and four threads are almost twice as fast. However, there was only a slight increase from four threads to two threads. For the final version, the amount of threads delegated to cracking the hash depends on the priority, which in theory should speed up cracking for requests with higher priorities. 
