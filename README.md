@@ -80,12 +80,28 @@ The code for this experiment can be found on the __alternative_equality_checking
 ## Caching
 Emil Kosiara (s174265)
 
-With a repeatability of 20% in the `run-client-final.sh`, there is a `1/5` chance of the same request coming again, immediately after. Therefor it could be beneficial to save the computed hashes, and simply look the hash up, when it is needed, instead of brute forcing it.
+With a repeatability of 20% in the `run-client-final.sh`, there is a `1/5` chance of the same request coming again, immediately after. Therefor it maybe could be beneficial to save the already computed hashes, and simply look the hashes up, when they are needed, instead of brute forcing them. But it also takes run time to search for the stored hashes and save new computed hashes. Therefor an experiment has to be performed, to see if this will be beneficial or not.
 
+### Implementation
 The chosen data structure for this was a hash table. It was implemented using an array containing the first element of a linked list, at each index. The linked list was implemented as a struct, containing an integer value, the sha256 hash of that integer saved in an uint8_t array, and a pointer pointing at the next element in the list, or `NULL` if the element is the last in the list.
 
-For a hash table, a hashing function is needed to assign a bucket. The function should consist of three parts. Firstly there has to be a representation of the element, then it is multiplied by a 'big' prime number, to reduce patterns in the hashes, and lastly a modulo operation with the modulus set as the numbers of buckets has to be calculated. 
-For a representation, the individual bits, of the hash from the sha256 hashing, are summed. The prime number chosen is `7753`. And the number of buckets is 10,000.
+For a hash table, a hash function is needed to assign a bucket. This results in a key, which is the index for the assigned bucket. The function should consist of three parts. Firstly there has to be a representation of the element, then it is multiplied by a 'big' prime number, to reduce patterns in the hashes, and lastly a modulo operation with the modulus set as the numbers of buckets has to be calculated. 
+For a representation, the individual bits, of the hash from the sha256 hashing, are summed. 
+The prime number chosen is `7753`. And the number of buckets is 10,000.
+
+The way our caching is used, is that when a hash is recieved and ready to be broken. The key for the hash is computed, and that linked list is searched for the hash, if the hash is found in the cache, the value is retured back, and is sent back to the client. If the hash is not found, the hash is given to the brute forcing. When the hash then is found with brute forcing, it is inserted in the cache, and sent back to the client. 
+
+### Test results
+| Server-version         | Test 1      | Test 2      | Test 3      | Average score |
+|------------------------|-------------|-------------|-------------|---------------|
+| Base version           | 182,710,240 | 184,350,403 | 184,383,114 | 183,814,586   |
+| With caching           | 157,382,456 | 156,380,437 | 156,123,207 | 156,628,700   |
+
+### Conclusion
+As you can see the use of our caching resulted in a 14.79% reduction in run time. This shows that it is worth the run time to make a hash table, search in it, and insert new elements, to get reap the benefit of having all prior hashes og corrosponding values stored.
+
+### Location of code
+The code for the caching experiment can be found on the branch `caching` in the files __caching.h__ (functions) and __server.c__ (utilization).
 
 ---------------------------------
 
