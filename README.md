@@ -90,12 +90,12 @@ As both the the main threads and worker threads will be performing enqueues and 
 This use of semaphores to signal whenever items are ready in the queue and having threads sleep and wake up properly by the nature of semaphores avoids busy-waiting and is thus very efficient. The amount of worker threads idle at any time is easy to modify by changing a single macro "MAX\_THREADS". Good results were found for 4 to 10 threads alive at any time.
 
 ### Test results
-| Server-version               | Test 1          | Test 2      | Test 3      | Average score |
-|------------------------------|-----------------|-------------|-------------|-------------- |
-| Base version                 | 222,218859      | 222,688,812 | 221,733,401 | 222,213,690   |
-| Popup threads                | 148,934,733     | 147,034,193 | 150,031,367 | 148,666,764   |
-| Job delegation(4 threads)    | 105,673,304     | 103,258,324 | 102,660,669 | 103,864,099   |
-| Producer/consumer(4 threads) | 101,071,113     | 103,732,729 | 103,008,310 | 102,604,050   |
+| Server-version               | Test 1      | Test 2      | Test 3      | Average score |
+|------------------------------|-------------|-------------|-------------|---------------|
+| Base version                 | 222,218859  | 222,688,812 | 221,733,401 | 222,213,690   |
+| Popup threads                | 148,934,733 | 147,034,193 | 150,031,367 | 148,666,764   |
+| Job delegation(4 threads)    | 105,673,304 | 103,258,324 | 102,660,669 | 103,864,099   |
+| Producer/consumer(4 threads) | 101,071,113 | 103,732,729 | 103,008,310 | 102,604,050   |
 
 ### Discussion
 The producer/consumer solution was the technique carried on to the final solution of the three experiments because of its concise implementation, great scalability, ease to integrate with the priority queue experiments and last but not least performance compared with the base implementation.
@@ -152,6 +152,7 @@ Regardless, this implementation was the fastest of all of the previous, and gave
 The number of forks that gave the best scores were 4 forks and 8 forks, with not a large difference inbetween them. This is because as the number of forks increases, the CPU uses more cycles switching between each process instead of processing reverse hashes. With this data, we used a smaller number of threads for our final implementation.
 
 ---------------------------------
+
 ## Multithreading for cracking speed
 
 (s164415) Magnus Lyk-Jensen
