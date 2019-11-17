@@ -83,23 +83,23 @@ This use of semaphores to signal whenever items are ready in the queue and havin
 This solution trumps the popup-thread experiment in both performance and safety as it is a well known technique. Performance wise, the sheer amount of popup-threads running concurrently in the first experiment renders the average response for any request very high, as they are all handled concurrently, thus not guaranteeing that request arriving first will be responsed to first. This solution allows for constraints on the maximum number of threads that can operate concurrently while still utilizing the multiple cores.
 This solution was further more chosen over the other delegation technique because of slightly better performance, easy scalability and ease to integrate with the priority queue.
 
-##Test results
-Server-version | Test 1 | Test 2 | Test 3 | Average score
----------------|--------|--------|--------|--------------
-Base version | 222,218859 | 222,688,812 | 221,733,401 | 222,213,690
-Popup threads | 148,934,733 | 147,034,193 | 150,031,367 | 148,666,764
-Job delegation(4 threads) | 105,673,304 | 103,258,324 | 102,660,669 | 103,864,099
-Producer/consumer(4 threads) | 101,071,113 | 103,732,729 | 103,008,310 | 102,604,050
+## Test results
+| Server-version               | Test 1          | Test 2      | Test 3      | Average score |
+|------------------------------|-----------------|-------------|-------------|-------------- |
+| Base version                 | 222,218859      | 222,688,812 | 221,733,401 | 222,213,690   |
+| Popup threads                | 148,934,733     | 147,034,193 | 150,031,367 | 148,666,764   |
+| Job delegation(4 threads)    | 105,673,304     | 103,258,324 | 102,660,669 | 103,864,099   |
+| Producer/consumer(4 threads) | 101,071,113     | 103,732,729 | 103,008,310 | 102,604,050   |
 
-##Discussion
+## Discussion
 The producer/consumer solution was the technique carried on to the final solution of the three experiments because of its concise implementation, great scalability, ease to integrate with the priority queue experiments and last but not least performance compared with the base implementation.
 This solution trumps the popup-thread experiment in both performance and safety as it is a well known technique. Performance wise, the sheer amount of popup-threads running concurrently in the first experiment renders the average response for any request very high, as they are all handled concurrently, thus not guaranteeing that request arriving first will be responsed to first. This solution allows for constraints on the maximum number of threads that can operate concurrently while still utilizing the multiple cores. 
 This solution was further more chosen over the other delegation technique because of slightly better performance and ease to integrate with the priority queue. 
 
-##Conclusion
+## Conclusion
 The producer/consumer solution was the technique carried on to the final solution of the three experiments because of its concise implementation, great scalability, ease to integrate with the priority queue and last but not least performance compared with the base implementation.
 
-##Location of code
+## Location of code
  A branch by the name Multithreaded-Job\_Delegation can be found on the Github repository with 3 directories named "backup\_popup" (First experiment), "backup\_delegation1" (second experiment) and "backup\_consumer\_producer" (final experiment). 
 
 ---------------------------------
