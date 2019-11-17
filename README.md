@@ -182,7 +182,7 @@ The number of forks that gave the best scores were 4 forks and 8 forks, with not
 
 ## Multithreading for cracking speed
 
-(s164415) Magnus Lyk-Jensen
+Magnus Lyk-Jensen (s164415)
 
 On branch: `Magnus Experiment` 
 
@@ -192,8 +192,14 @@ Instead of going from start to end, multiple threads have each of their section 
 First it was tested with 2 thread and then 4 threads. 
 
 ## Test results
+
+This was done on the 'run-client-milestone.sh' file. 
+
 | Server-version               | Test 1      | Test 2      | Test 3      | Average score |
 |------------------------------|-------------|-------------|-------------|---------------|
 | Base version                 | 208,381,291 | 192,390,982 | 191,735,671 | 197,502,648   |
 | 2 threads                    | 100,641,086 | 102,729,951 | 103,440,548 | 102,270,528   |
 | 4 threads                    | 97,263,237  | 100,461,213 | 99,637,479  | 99,120,643    |
+
+## Conclusion
+As expected the results for the implementations with two- and four threads are almost twice as fast. However, there was only a slight increase from four threads to two threads. For the final version, the amount of threads delegated to cracking the hash depends on the priority, which in theory should speed up cracking for higher priorities. 
