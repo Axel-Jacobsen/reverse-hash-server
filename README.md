@@ -3,6 +3,7 @@
 ## Priority
 
 Since the weighted scores multiply the run time of a request by the priority of the request, a simple idea for improving the final score, would be to try to lower the run time for higher priority requests, even if that means increasing the run time of lower priority requests.
+
 To do this we have decided to insert the request we recieve into a queue of some sort, and then once we have a certain amount of request in this queue we extract the request with the highest priority from the queue and handle that request. Once we start working with multible threads we can think about having one thread for putting request into the queue and a number of threads handling requests from the queue. This way we wouldn't need to wait untill we have a certain amount of requests in the queue and can just start handling them immedeatly.
 To be able to handle a request we extract from the queue, we need to have a way of getting the socket that the request was sent through. To do this we make a __struct request__ that contains the packet from a request and the socket it came from, and store these structs on the queue.
 Now we have most of the stuff needed to implement a priority queue,
