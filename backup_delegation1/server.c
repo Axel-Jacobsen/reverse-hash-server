@@ -17,7 +17,7 @@
 #define MESSAGE_LEN 49
 #define SHA_LEN 32
 #define RESPONSE_LEN 8
-#define MAX_THREADS 6
+#define MAX_THREADS 4
 
 
 typedef struct Thread_args{
