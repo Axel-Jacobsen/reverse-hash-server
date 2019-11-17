@@ -87,11 +87,12 @@ The chosen data structure for this was a hash table. It was implemented using an
 
 For a hash table, a hash function is needed to assign a bucket. This results in a key, which is the index for the assigned bucket. The function should consist of three parts. Firstly there has to be a representation of the element, then it is multiplied by a 'big' prime number, to reduce patterns in the hashes, and lastly a modulo operation with the modulus set as the numbers of buckets has to be calculated. 
 For a representation, the individual bits, of the hash from the sha256 hashing, are summed. 
-The prime number chosen is `7753`. And the number of buckets is 10,000.
+The prime number chosen is `7753`. And the number of buckets is `10,000`.
 
 The way our caching is used, is that when a hash is recieved and ready to be broken. The key for the hash is computed, and that linked list is searched for the hash, if the hash is found in the cache, the value is retured back, and is sent back to the client. If the hash is not found, the hash is given to the brute forcing. When the hash then is found with brute forcing, it is inserted in the cache, and sent back to the client. 
 
 ### Test results
+These were done on the `run-client-milestone.sh` file.
 | Server-version         | Test 1      | Test 2      | Test 3      | Average score |
 |------------------------|-------------|-------------|-------------|---------------|
 | Base version           | 182,710,240 | 184,350,403 | 184,383,114 | 183,814,586   |
