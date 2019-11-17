@@ -1,5 +1,16 @@
 # group10
 
+## Final Implementation
+
+The final implementation uses several of the experiments that we used below. At a high level, we used
+
+* Caching
+* Priority Ques to process higher priority requests first
+* Multithreading consumers for a producer-consumer architecture
+* Multithreading for individual reverse hash calculations
+
+The code for caching and the priority queue are in `caching.h` and `priority.h` respectively. The main server implementation is `server.c`.
+
 ## Priority
 
 Since the weighted scores multiply the run time of a request by the priority of the request, a simple idea for improving the final score, would be to try to lower the run time for higher priority requests, even if that means increasing the run time of lower priority requests.
