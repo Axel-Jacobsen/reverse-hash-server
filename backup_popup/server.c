@@ -69,8 +69,8 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
 }
 
 void* request_handler(void* socket_info){
-	int sock = ((Socket_info*)socket_info)->sock;
-	free(socket_info);
+	int sock = ((Socket_info*)socket_info)->sock; //Save socket integer locally
+	free(socket_info);			//Free struct pointer to be used for other popup threads
 	int n = 0;
         int len = 0, maxlen=MESSAGE_LEN;
         uint8_t buffer[MESSAGE_LEN] = {0};
@@ -85,7 +85,6 @@ void* request_handler(void* socket_info){
                 send(sock, response, RESPONSE_LEN, 0);
   	}	
 	close(sock);
-	printf("Exiting thread!\n");
 }
 
 
@@ -140,8 +139,8 @@ int main(int argc, char *argv[])
 			perror("couldn't open a socket to accept data");
 			return 1;
 		}
-
-		printf("Creating thread to handle request!\n");
+		
+		//Save socket in struct and pass it to new popup thread
 		Socket_info* socket_info = (Socket_info*)malloc(sizeof(Socket_info));
 		socket_info->sock = sock;
 		if(pthread_create(&rh, NULL, request_handler, (void*)socket_info) != 0){

@@ -17,7 +17,7 @@
 #define MESSAGE_LEN 49
 #define SHA_LEN 32
 #define RESPONSE_LEN 8
-#define MAX_THREADS 4
+#define MAX_THREADS 6
 
 
 typedef struct Thread_args{
@@ -54,26 +54,23 @@ void rev_hash(uint8_t *big_endian_arr, uint8_t *response_arr)
         uint64_t k;
         uint64_t k_conv;
 	
+	//Loop from and including to but not including end
         for(k = start; k < end; k++){
                 sha_good = 1;
                 sha256(&k, sha256_test);
-		if((*big_endian_arr != *sha256_test) || (*(big_endian_arr+1) != *(sha256_test+1))  || (*(big_endian_arr+2) != *(sha256_test+2)) || (*(big_endian_arr+3) != *(sha256_test+3)) || (*(big_endian_arr+4) != *(sha256_test+4)) || (*(big_endian_arr+5) != *(sha256_test+5)) || (*(big_endian_arr+6) != *(sha256_test+6)) || (*(big_endian_arr+7) != *(sha256_test+7)) || (*(big_endian_arr+8) != *(sha256_test+8)) || (*(big_endian_arr+9) != *(sha256_test+9))|| (*(big_endian_arr+10) != *(sha256_test+10))|| (*(big_endian_arr+11) != *(sha256_test+11))|| (*(big_endian_arr+12) != *(sha256_test+12))|| (*(big_endian_arr+13) != *(sha256_test+13))|| (*(big_endian_arr+14) != *(sha256_test+14))|| (*(big_endian_arr+15) != *(sha256_test+15))|| (*(big_endian_arr+16) != *(sha256_test+16))|| (*(big_endian_arr+17) != *(sha256_test+17))|| (*(big_endian_arr+18) != *(sha256_test+18))|| (*(big_endian_arr+19) != *(sha256_test+19))|| (*(big_endian_arr+20) != *(sha256_test+20))|| (*(big_endian_arr+21) != *(sha256_test+21))|| (*(big_endian_arr+22) != *(sha256_test+22))|| (*(big_endian_arr+23) != *(sha256_test+23))|| (*(big_endian_arr+24) != *(sha256_test+24))|| (*(big_endian_arr+25) != *(sha256_test+25))|| (*(big_endian_arr+26) != *(sha256_test+26))|| (*(big_endian_arr+27) != *(sha256_test+27))|| (*(big_endian_arr+28) != *(sha256_test+28))|| (*(big_endian_arr+29) != *(sha256_test+29))|| (*(big_endian_arr+30) != *(sha256_test+30))|| (*(big_endian_arr+31) != *(sha256_test+31))){
-
-			sha_good = 0;
-		}		
-
-		/*
-                for(i = 0; i < 32; i++){
-                        if(big_endian_arr[i] != sha256_test[i]){
-                                sha_good = 0;
-                                break;
-                        }
-                }
-		*/
-                if(sha_good){
+		for(i = 0; i < SHA_LEN; i++)
+		{
+			if(big_endian_arr[i] != sha256_test[i])
+			{
+				sha_good = 0; //If a mismatching byte is found, stop for this hash
+				break;
+			}
+		}	
+                
+		if(sha_good){
                         k_conv = htobe64(k);
                         memcpy(response_arr, &k_conv, sizeof(k_conv));
-                        break;
+                        return;
                 }
         }
 }
@@ -90,27 +87,24 @@ void request_handler(int sock){
                 pbuffer += n;
                 maxlen -= n;
                 len += n;
-                rev_hash(buffer, response);
-                send(sock, response, RESPONSE_LEN, 0);
+                rev_hash(buffer, response);		//Break hash
+                send(sock, response, RESPONSE_LEN, 0);  //Send reponse to client
         }
         close(sock);
-        //printf("Job done\n");
 }
 
-
+//Create worker threads running this function
 void* worker_thread(void* args){
 	
 	Thread_args* thread_args = (Thread_args*)args;
 	int* int_ptr = malloc(sizeof(int));
 	*int_ptr = 0;
 	while(1){
-		//printf("Waiting on request!\n");
 		while(!*int_ptr)
 		{
 			sem_getvalue(&(thread_args->mutex),int_ptr);
 		}
-		//printf("Semaphore val:%d\n", *int_ptr);
-		//printf("Handling request!\n");
+		
 		request_handler(thread_args->sock);
 		sem_wait(&(thread_args->mutex));
 	}
@@ -163,11 +157,12 @@ int main(int argc, char *argv[])
 	pthread_t rh[MAX_THREADS];
 	Thread_args thread_args[MAX_THREADS];
 	int i;
+
+	//Create threads and initialize mutexes
 	for(i = 0; i < MAX_THREADS; i++){
 		sem_init(&(thread_args[i].mutex), 0, 0);
 		pthread_create(&rh[i], NULL, worker_thread, (void*)&(thread_args[i]));
 	}
-	sleep(2); //Give threads a chance to start
 
 	printf("\nServing on %s:%d\n", inet_ntoa(server_addr.sin_addr), PORT);
 	int sock;
@@ -183,11 +178,12 @@ int main(int argc, char *argv[])
                 }
 
 		while(1)
-		{	
+		{	//Check sem value of all worker threads
 			sem_getvalue(&(thread_args[j].mutex), semVal);
 			
+			//If one is ready, give it the request
 			if(*semVal == 0){
-				//printf("Thread number[%d] takes care of the request!\n", j);
+				
 				thread_args[j].sock = sock;
 				sem_post(&(thread_args[j].mutex));
 				break;
@@ -196,22 +192,11 @@ int main(int argc, char *argv[])
 			j++;
 			if(j >= MAX_THREADS)
 			{
-				j = 0;	//Reset
-				sleep(1);	//No threads are available, Later replacae with signal
+				j = 0;		//Reset
+				sleep(1);	//No threads are available, wait
 								
 			}
-		}
-
-		
-		/*
-		printf("Creating thread to handle request!\n");
-		Socket_info* socket_info = (Socket_info*)malloc(sizeof(Socket_info));
-		socket_info->sock = sock;
-		if(pthread_create(&rh, NULL, request_handler, (void*)socket_info) != 0){
-                	printf("Error creating a new thread going up\n");
-                	exit(1);
-		}
-		*/
+		}	
         }
 		
 	close(listen_sock);

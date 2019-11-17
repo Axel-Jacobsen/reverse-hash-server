@@ -33,32 +33,14 @@ FIFO_CircArr queue_global;
 sem_t mutexD, empty, full;
 //Queue functions
 
-int isFull(){
-	if((queue_global.front == queue_global.rear + 1) || (queue_global.front == 0 && queue_global.rear == queue_global.size-1)) return 1;
-	return 0;
-}
-
-int isEmpty()
+void enQueue(int element)
 {
-	if(queue_global.front == -1) return 1;
-	return 0;
-}
-
-void enQueue(int element){
-	if(isFull())
+	if(queue_global.front == -1)
 	{
-		//printf("\n Job queue is full!!!\n");
+		queue_global.front = 0; //Initial enqueue
 	}
-	else
-	{
-		if(queue_global.front == -1)
-		{
-			queue_global.front = 0;
-		}
-		queue_global.rear = (queue_global.rear + 1) % queue_global.size;
-		queue_global.arr[queue_global.rear] = element;
-		//printf("\n Inserted -> %d\n", element);
-	}
+	queue_global.rear = (queue_global.rear + 1) % queue_global.size;//Adjust rear pointer. Loop around if exceeding array boundaries.
+	queue_global.arr[queue_global.rear] = element;			//Put item in queue at rear
 }
 
 
@@ -66,24 +48,18 @@ void enQueue(int element){
 int deQueue()
 {
 	int element;
-	if(isEmpty())
+
+	element = queue_global.arr[queue_global.front];
+	if(queue_global.front == queue_global.rear)	//deQueue leads to empty buffer
 	{
-		//printf("\nQueue is empty !!\n");
-		return(-1);
-	}else
-	{
-		element = queue_global.arr[queue_global.front];
-		if(queue_global.front == queue_global.rear)
-		{
-			queue_global.front = -1;
-			queue_global.rear = -1;
-		}else
-		{
-			queue_global.front = (queue_global.front + 1) % queue_global.size;
-		}
-		//printf("\nDeleted element -> %d\n", element);
-		return element;
+		queue_global.front = -1;
+		queue_global.rear = -1;
 	}
+	else
+	{
+		queue_global.front = (queue_global.front + 1) % queue_global.size; //Adjust front to next element in queue
+	}
+	return element;
 }
 
 
@@ -144,6 +120,7 @@ void* request_handler_thread(void* args){
 		int len = 0;
 		int maxlen = MESSAGE_LEN;
 		uint8_t *pbuffer = buffer;
+		//Protect buffer operations by mutual exclusion and signal main thread that an item has been deQueued
 		sem_wait(&full);
 		sem_wait(&mutexD);
 		sock = deQueue();
@@ -216,10 +193,10 @@ int main(int argc, char *argv[])
 	for(i = 0; i < MAX_THREADS; i++){
 		pthread_create(&rht, NULL, request_handler_thread, NULL);
 	}
-	sleep(1); //Give threads a chance to start
-
+	
 	printf("\nServing on %s:%d\n", inet_ntoa(server_addr.sin_addr), PORT);
 	int sock;
+	//Initialize queue and its indices
 	queue_global.size = QUEUE_SIZE;
 	queue_global.rear = -1;
 	queue_global.front = -1;
@@ -232,6 +209,7 @@ int main(int argc, char *argv[])
                         perror("couldn't open a socket to accept data");
                         return 1;
                 }
+		//Protect buffer operations with mutual exclusion and signal a worker thread waiting that a request is ready to be handled
 		sem_wait(&empty);
 		sem_wait(&mutexD);	
 		enQueue(sock);
