@@ -12,6 +12,9 @@ The final implementation uses several of the experiments that we used below. At 
 The code for caching and the priority queue are in `caching.h` and `priority.h` respectively. The main server implementation is `server.c`.
 
 ## Priority
+
+Kasper Bendt Jørgensen (s174293)
+
 Since the weighted scores multiply the run time of a request by the priority of the request, a simple idea for improving the final score, would be to try to lower the run time for higher priority requests, even if that means increasing the run time of lower priority requests.
 
 To do this we decided to insert the request we recieve into a queue of some sort, and when we then want to handle a request we  extract the reqest with the highest priority. Ideally we would like one thread to put request in the queue and other threads to handle the requests, but for this experiment we simply wait untill we have a few request in the queue before we start handling them.
