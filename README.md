@@ -34,14 +34,17 @@ For inserting a request we find the priority of the request and insert it at the
 Using this implementation for the queue we get a 27.2% score improvement over the base version.
 This is a very good improvement, and we would definitely want to utilize this in the final version of the server.
 
+### Test results
 All the test-scores from these 2 experiments can be found in the table below. All of the tests for the experiment was run on the same machine using the __run-client-milestone__ test.
-The source code for this experiment can be found on the __priority__ branch in the repository, in the server.c file. The most recent commit on the branch contains the version with the 16 FIFO queues. The version with 1 sorted list can be found on an old commit (64b5743) with the commit-message: "working version of simple priority using 1 list".
 
 | Server-version         | Test 1      | Test 2      | Test 3      | Test 4      | Test 5      | Average score |
 |------------------------|-------------|-------------|-------------|-------------|-------------|---------------|
 | Base version           | 293,367,363 | 279,708,346 | 274,332,655 | 282,637,657 | 276,751,659 | 285,054,511   |
 | 1-sorted-list-priority | 272,559,508 | 276,590,468 | 255,518,303 | 266,730,014 | 254,159,835 | 263,359,672   |
 | 16-Queue-priority      | 204,356,849 | 214,204,695 | 211,464,262 | 209,549,930 | 210,652,128 | 207,504,489   |
+
+### Location of the code
+The source code for this experiment can be found on the __priority__ branch in the repository, in the server.c file. The most recent commit on the branch contains the version with the 16 FIFO queues. The version with 1 sorted list can be found on an old commit (64b5743) with the commit-message: "working version of simple priority using 1 list".
 
 ---------------------------------
 
