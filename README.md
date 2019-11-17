@@ -49,6 +49,7 @@ I conducted three experiments involving multithreading of which one was included
 
 ## Job delegation - Solution with no shared buffer
 This solution was 
+
 ## Job delegation - Classic producer/consumer scheme
 This solution was the technique carried on to the final solution of the three experiments because of its clear and concise implementation, great scalability, ease to integrate with the priority queue and last but not least performance.
 This solution makes use of a classic concurrent programming technique that solves a producer-consumer problem (or bounded-buffer problem) using threads, semaphores and a circular array. Initially, before the main thread launches the server service, it creates a predefined number of idle request handling threads. The main thread is then responsible for listening for established connection on sockets and enqueuing the integer identifying said socket in the queue indicating that a request is available for the worker threads to handle. 
@@ -57,7 +58,7 @@ As both the the main threads and worker threads will be performing enqueues and 
 This use of semaphores to signal whenever items are ready in the queue and having threads sleep and wake up properly by the nature of semaphores avoids busy-waiting and is thus very efficient. The amount of worker threads idle at any time is easy to modify by changing a single macro. Good results were found for 4 to 10 threads alive at any time.
 This solution trumps the popup-thread experiment in both performance and safety as it is a well known technique. Performance wise, the sheer amount of popup-threads running concurrently in the first experiment renders the average response for any request very high, as they are all handled concurrently, thus not guaranteeing that request arriving first will be responsed to first. This solution allows for constraints on the maximum number of threads that can operate concurrently while still utilizing the multiple cores. 
 This solution was further more chosen over the other delegation technique because of slightly better performance, easy scalability and ease to integrate with the priority queue. 
-----------------------------------
+
 
 
 
