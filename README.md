@@ -64,9 +64,9 @@ I conducted three experiments involving multithreading of which one was included
 The first experiment had a main thread continuously listening for requests, and upon accepting one, create a popup-thread to handle the request. The integer identifying the socket with the pending message is passed as parameters when the thread is created. The thread then reads the message from the socket, finds the answer, sends it to the client and terminates.  
 
 ### Job delegation - Solution with no shared buffer
-Upon initial testing of the popup-threads method, it was hypothesized to contain three issues that could be improved upon. 
+Upon initial testing of the popup-threads method, it was hypothesized to contain two issues that could be improved upon. 
 First, having an "unlimited number"(comments on this in the discussion) running simultaneously would (occuring for high continuous bursts of requests) lead to congestion on processor usage making the order in which requests arrived indifferent. To achieve lower average delay, the requests would have to be handled in the order they arrive and have those prioritized over later arrivals.
-Secondly, 
+ 
 Secondly it would be faster if the threads handling requests could be created on server start-up instead of dynamically, avoiding overhead.
 In this experiment, instead of creating popup threads for each request, a select number of threads would be created on server start. The main thread would accept incoming requests and delegate it to a worker thread when any is available. If no thread is available, the main thread will wait until one is, identifying each worker thread by their own semaphore.
 
@@ -93,7 +93,7 @@ This solution was further more chosen over the other delegation technique becaus
 
 ### Discussion
 The producer/consumer solution was the technique carried on to the final solution of the three experiments because of its concise implementation, great scalability, ease to integrate with the priority queue experiments and last but not least performance compared with the base implementation.
-This solution trumps the popup-thread experiment in both performance and safety as it is a well known technique. Performance wise, the sheer amount of popup-threads running concurrently in the first experiment renders the average response for any request very high, as they are all handled concurrently, thus not guaranteeing that request arriving first will be responsed to first. This solution allows for constraints on the maximum number of threads that can operate concurrently while still utilizing the multiple cores. 
+This solution trumps the popup-thread experiment in both performance and safety as it is a well known technique. Performance wise, the sheer amount of popup-threads running concurrently in the first experiment renders the average response for any request very high, as they are all handled concurrently, thus not guaranteeing that request arriving first will be responsed to first. This solution allows for constraints on the maximum number of threads that can operate concurrently while still utilizing the multiple cores. Safety-wise, the popup-thread method cannot create an unlimited number of threads in practice as there is a system limit. The consumer/producer solution avoids this issue. 
 This solution was further more chosen over the other delegation technique because of slightly better performance and ease to integrate with the priority queue. 
 
 ### Conclusion
