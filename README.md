@@ -204,14 +204,14 @@ Magnus Lyk-Jensen (s164415)
 
 On branch: `Magnus Experiment` 
 
-The base implementation iterated from start to end, comparing the SHA conversion with the request. However, it only compared one value at a time, as the reason for this experiment where it will use multithreading to reduce the time for the overall time to crack a hash. 
-Instead of going from start to end, multiple threads have each of their section from the base loop range. The first experiment have two threads implemented to handle each of their part. This should speed up the cracking time, as each thread will be doing one comparison at a time, increasing the over all speed. Each thread will run a function which takes a struct as argument, in which it will be passed the required values to determine the range. There is no need for semaphores, as each thread will be using a different section of start-end range than the other thread, thus avoiding threads to double check. When one of the threads finds the solution, it will directly respond to the client instead of returning to the main function.  When this is done, it will close the other threads with signals before being returned. This was done by using `pthread_setcanceltype`, `pthread_testcancel` and `pthread_cancel`. The type would be `DEFERRED` and each of the functions would have a `pthread_testcancel` which would serve as a checkpoint which responds to a cancel request made by `pthread_cancel`. 
+The base implementation iterated from start to end, comparing the `SHA` conversion with the request. However, it only compared one value at a time, as the reason for this experiment where it will use multithreading to reduce the time for cracking a hash. 
+Instead of going from start to end, multiple threads have each of their section from the base loop range. The first experiment have two threads implemented to handle each of their part. This should speed up the cracking time, as each thread will be doing one comparison at a time, increasing the over all speed. Each thread will run a function which takes a struct as argument, in which it will be passed the required values to determine the range. There is no need for semaphores, as each thread will be using a different section of start-end range than the other thread, thus avoiding threads to double check. When one of the threads finds the solution, it will directly respond to the client instead of returning to the main function.  When this is done, it will close the other threads with signals before being returned. This was done by using `pthread_setcanceltype`, `pthread_testcancel` and `pthread_cancel`. The type would be `DEFERRED` and each of the functions would have a `pthread_testcancel` which serves as a checkpoint, which responds to a cancel request made by `pthread_cancel`. 
 
-First it was tested with 2 thread and then 4 threads. 
+First it was tested with 2 threads and then 4 threads. 
 
 ## Test results
 
-This was done on the 'run-client-milestone.sh' file. 
+__This was done on the 'run-client-milestone.sh' file.__ 
 
 | Server-version               | Test 1      | Test 2      | Test 3      | Average score |
 |------------------------------|-------------|-------------|-------------|---------------|
@@ -220,4 +220,4 @@ This was done on the 'run-client-milestone.sh' file.
 | 4 threads                    | 97,263,237  | 100,461,213 | 99,637,479  | 99,120,643    |
 
 ## Conclusion
-As expected the results for the implementations with two- and four threads are almost twice as fast. However, there was only a slight increase from four threads to two threads. For the final version, the amount of threads delegated to cracking the hash depends on the priority, which in theory should speed up cracking for requests with higher priorities. 
+As expected the results for the implementations with two- and four threads are almost twice as fast. However, there was only a slight increase from two threads to four threads. For the final version, the amount of threads delegated to cracking the hash depends on the priority, which in theory should speed up cracking for requests with higher priorities. 
