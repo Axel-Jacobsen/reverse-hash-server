@@ -80,13 +80,13 @@ The code for this experiment can be found on the __alternative_equality_checking
 ## Caching
 Emil Kosiara (s174265)
 
-With a repeatability of 20% in the `run-client-final.sh`, there is a `1/5` chance of the same request coming again, immediately after. Therefor it maybe could be beneficial to save the already computed hashes, and simply look the hashes up, when they are needed, instead of brute forcing them. But it also takes run time to search for the stored hashes and save new computed hashes. Therefor an experiment has to be performed, to see if this will be beneficial or not.
+With a repeatability of 20% in the `run-client-final.sh`, there is a `1/5` chance of the same request coming again, immediately after. Therefore it maybe could be beneficial to save the already computed hashes, and simply look the hashes up, when they are needed, instead of brute forcing them. But it also takes run time to search for the stored hashes and save new computed hashes. Therefore an experiment has to be performed, to see if this will be beneficial or not.
 
 ### Implementation
-The chosen data structure for this was a hash table. It was implemented using an array containing the first element of a linked list, at each index. The linked list was implemented as a struct, containing an integer value, the sha256 hash of that integer saved in an uint8_t array, and a pointer pointing at the next element in the list, or `NULL` if the element is the last in the list.
+The chosen data structure for this was a hash table. It was implemented using an array containing the first element of a linked list, at each index. The linked list was implemented as a struct, containing an integer value, the SHA256 hash of that integer saved in an uint8_t array, and a pointer pointing at the next element in the list, or `NULL` if the element is the last in the list.
 
 For a hash table, a hash function is needed to assign a bucket. This results in a key, which is the index for the assigned bucket. The function should consist of three parts. Firstly there has to be a representation of the element, then it is multiplied by a 'big' prime number, to reduce patterns in the hashes, and lastly a modulo operation with the modulus set as the numbers of buckets has to be calculated. 
-For a representation, the individual bits, of the hash from the sha256 hashing, are summed. 
+For a representation, the individual bits, of the hash from the SHA256 hashing, are summed. 
 The prime number chosen is `7753`. And the number of buckets is `10,000`.
 
 The way our caching is used, is that when a hash is received and ready to be broken. The key for the hash is computed, and that linked list is searched for the hash, if the hash is found in the cache, the value is returned back, and is sent back to the client. If the hash is not found, the hash is given to the brute forcing. When the hash then is found with brute forcing, it is inserted in the cache, and sent back to the client. 
