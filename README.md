@@ -140,3 +140,17 @@ Regardless, this implementation was the fastest of all of the previous, and gave
 
 The number of forks that gave the best scores were 4 forks and 8 forks, with not a large difference inbetween them. This is because as the number of forks increases, the CPU uses more cycles switching between each process instead of processing reverse hashes. With this data, we used a smaller number of threads for our final implementation.
 >>>>>>> ab3c1fd8c76f6839749c377c25d110135d8c7107
+
+---------------------------------
+## Multithreading for cracking speed
+
+(s164415) Magnus Lyk-Jensen
+
+On branch: ‘Magnus´Experiment’
+
+The base implementation iterated from start to end, comparing the SHA conversion with the request. However, it only compared one value at a time, as the reason for this experiment where it will use multithreading to reduce the time for the iteration. 
+Instead of going from start to end, multiple threads have each of their section from the base loop. The first experiment have two threads implemented to handle each of their part. This should in theory speed up the “cracking time”, as each thread will be doing one at a time, increasing the speed.  This was done by creating the amount of threads it will be using. Each thread will run a function which takes a struct as argument, in which it will be passed the required values. There is no need for semaphores, as each thread will be using a different section of start-end range than the other thread. When one of the threads finds the solution, it will directly respond instead of returning to the main function.  When this is done, it will close the other threads with signals before being returned. This was done by using ‘pthread_setcanceltype’, ‘pthread_testcancel’ and ‘pthread_cancel’. The type would be ‘DEFERRED’ and each of the functions would have a ‘pthread_testcancel’ which would serve as a checkpoint which responds to a cancel request made by ‘pthread_cancel’. 
+
+First it was tested with 2 thread and then 4 threads. 
+
+## Test results
