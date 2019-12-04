@@ -1,5 +1,7 @@
 # group10
 
+[Presentation Slides](https://docs.google.com/presentation/d/1eLECvrm6ArVM6vuGGeOQRGMc4JsXGorcqBr2QUBiX_0/edit?usp=sharing)
+
 ## Final Implementation
 
 The final implementation uses several of the experiments that we used below. At a high level, we used
